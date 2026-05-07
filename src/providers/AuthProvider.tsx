@@ -1,10 +1,11 @@
 "use client";
 
 import { useSession } from "@/lib/auth-client";
+import { User } from "@/types";
 import { createContext, useContext } from "react";
 
 interface AuthContextType {
-  user: unknown;
+  user: (User & { emailVerified?: boolean }) | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
