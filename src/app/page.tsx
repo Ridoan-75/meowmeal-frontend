@@ -1,12 +1,33 @@
 import { Navbar } from "@/components/common/Navbar";
+import { Footer } from "@/components/common/Footer";
+import { HeroSection } from "@/components/sections/HeroSection";
+import { CategorySection } from "@/components/sections/CategorySection";
+import { FeaturedMeals } from "@/components/sections/FeaturedMeals";
+import { HowItWorks } from "@/components/sections/HowItWorks";
+import { StatsSection } from "@/components/sections/StatsSection";
+import { TopProviders } from "@/components/sections/TopProviders";
+import { Testimonials } from "@/components/sections/Testimonials";
+import { FAQSection } from "@/components/sections/FAQSection";
+import { NewsletterSection } from "@/components/sections/NewsletterSection";
+import { CTASection } from "@/components/sections/CTASection";
 
 export default function HomePage() {
   return (
     <>
       <Navbar />
       <main>
-        <h1>MeowMeal Home</h1>
+        <HeroSection />
+        <CategorySection />
+        <FeaturedMeals />
+        <HowItWorks />
+        <StatsSection />
+        <TopProviders />
+        <Testimonials />
+        <FAQSection />
+        <NewsletterSection />
+        <CTASection />
       </main>
+      <Footer />
     </>
   );
 }
