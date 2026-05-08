@@ -1,5 +1,3 @@
-import { Navbar } from "@/components/common/Navbar";
-import { Footer } from "@/components/common/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Clock, User } from "lucide-react";
 import Link from "next/link";
@@ -54,7 +52,6 @@ const posts = [
 export default function BlogPage() {
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-background">
         {/* Hero */}
         <section className="bg-gradient-to-br from-primary/5 to-accent/5 py-16">
@@ -111,7 +108,6 @@ export default function BlogPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

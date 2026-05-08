@@ -1,5 +1,4 @@
-import { Navbar } from "@/components/common/Navbar";
-import { Footer } from "@/components/common/Footer";
+
 
 const sections = [
   {
@@ -42,7 +41,6 @@ const sections = [
 export default function PrivacyPage() {
   return (
     <>
-      <Navbar />
       <main className="min-h-screen bg-background">
         {/* Hero */}
         <section className="bg-gradient-to-br from-primary/5 to-accent/5 py-16">
@@ -81,7 +79,6 @@ export default function PrivacyPage() {
           </div>
         </section>
       </main>
-      <Footer />
     </>
   );
 }

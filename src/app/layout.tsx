@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { AIChatbot } from "@/components/common/AIChatbot";
 import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -25,6 +26,7 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               {children}
+              <AIChatbot />
               <Toaster
                 position="top-right"
                 toastOptions={{
