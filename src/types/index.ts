@@ -104,6 +104,7 @@ export interface Order {
     price: number;
     meal: { id: string; title: string; images: string[] };
   }[];
+  customer?: { id: string; name: string };
 }
 
 export interface Review {
