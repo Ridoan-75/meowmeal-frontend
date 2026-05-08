@@ -40,7 +40,7 @@ export function MealCard({ meal }: MealCardProps) {
       <div className="p-4 flex flex-col flex-1 gap-2">
         {/* Provider */}
         <p className="text-xs text-muted-foreground font-medium truncate">
-          {meal.provider.shopName}
+          {meal.provider?.shopName || ""}
         </p>
 
         {/* Title */}

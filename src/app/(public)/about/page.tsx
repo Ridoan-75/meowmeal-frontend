@@ -1,4 +1,7 @@
 import { Users, Store, ShoppingBag, Star, Target, Heart, Zap } from "lucide-react";
+import { Navbar } from "@/components/common/Navbar";
+import { Footer } from "@/components/common/Footer";
+
 
 const stats = [
   { icon: Users, value: "10,000+", label: "Happy Customers" },
@@ -52,6 +55,7 @@ const team = [
 export default function AboutPage() {
   return (
     <>
+      <Navbar />
       <main className="min-h-screen bg-background">
         {/* Hero */}
         <section className="bg-gradient-to-br from-primary/5 to-accent/5 py-20">
@@ -154,6 +158,7 @@ export default function AboutPage() {
           </div>
         </section>
       </main>
+      <Footer />
     </>
   );
 }

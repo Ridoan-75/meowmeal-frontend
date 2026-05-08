@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import toast from "react-hot-toast";
+import { Navbar } from "@/components/common/Navbar";
+import { Footer } from "@/components/common/Footer";
 
 const contactInfo = [
   {
@@ -55,6 +57,7 @@ export default function ContactPage() {
 
   return (
     <>
+      <Navbar />
       <main className="min-h-screen bg-background">
         {/* Hero */}
         <section className="bg-gradient-to-br from-primary/5 to-accent/5 py-16">
@@ -92,10 +95,7 @@ export default function ContactPage() {
               <div className="lg:col-span-2">
                 <div className="bg-card border border-border rounded-2xl p-6">
                   <h2 className="text-xl font-bold mb-6">Send a Message</h2>
-                  <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col gap-4"
-                  >
+                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
                         <Label>Your Name</Label>
@@ -165,6 +165,7 @@ export default function ContactPage() {
           </div>
         </section>
       </main>
+      <Footer />
     </>
   );
 }

@@ -4,6 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-sans);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -115,14 +117,31 @@
   --sidebar-ring: #FF6B35;
 }
 
+/* Hide sheet close button */
+[data-radix-dialog-close] {
+  display: none !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "cv11", "ss01";
   }
   html {
     @apply font-sans;
+  }
+
+  /* Cursor pointer for all interactive elements */
+  button,
+  a,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"],
+  select,
+  label[for] {
+    cursor: pointer;
   }
 }

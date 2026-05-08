@@ -33,6 +33,7 @@ export interface ProviderProfile {
   isVerified: boolean;
   isOpen: boolean;
   createdAt: string;
+  avgRating?: number;
   _count?: { meals: number };
 }
 
@@ -137,4 +138,34 @@ export interface ApiResponse<T> {
     total: number;
     totalPages: number;
   };
+}
+
+export interface OrderStatus {
+  status: "PLACED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED";
+  count: number;
+}
+
+export interface TopMeal {
+  id: string;
+  title: string;
+  price: number;
+  orderCount: number;
+  provider: {
+    id: string;
+    shopName: string;
+  };
+}
+
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface RecentOrder {
+  id: string;
+  status: "PLACED" | "PREPARING" | "READY" | "DELIVERED" | "CANCELLED";
+  totalAmount: number;
+  customer: { id: string; name: string };
+  items: Array<{ id: string; meal: { title: string }; quantity: number }>;
 }

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { MealCard } from "@/components/common/MealCard";
 import { SkeletonCard } from "@/components/common/SkeletonCard";
 import api from "@/lib/axios";
@@ -14,38 +14,45 @@ export function FeaturedMeals() {
   const { data, isLoading } = useQuery({
     queryKey: ["featured-meals"],
     queryFn: async () => {
-      const res = await api.get("/meals?limit=8&sortBy=createdAt&sortOrder=desc");
+      const res = await api.get(
+        "/meals?limit=8&sortBy=createdAt&sortOrder=desc"
+      );
       return res.data.data as Meal[];
     },
   });
 
   return (
-    <section className="py-16 bg-secondary/50">
+    <section className="py-16 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-10">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold">Featured Meals</h2>
-            <p className="text-muted-foreground mt-1">
-              Most popular dishes right now
+            <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-1">
+              Popular Now
             </p>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Featured Meals
+            </h2>
           </div>
           <button
             onClick={() => router.push("/meals")}
-            className="flex items-center gap-1 text-sm text-primary hover:underline font-medium"
+            className="group flex items-center gap-2 text-sm font-semibold text-primary hover:gap-3 transition-all"
           >
             View all
-            <ChevronRight className="h-4 w-4" />
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
 
         {/* Meals Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {isLoading
             ? Array.from({ length: 8 }).map((_, i) => (
                 <SkeletonCard key={i} />
               ))
-            : data?.map((meal) => <MealCard key={meal.id} meal={meal} />)}
+            : data?.map((meal) => (
+                <MealCard key={meal.id} meal={meal} />
+              ))}
         </div>
       </div>
     </section>

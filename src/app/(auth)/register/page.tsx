@@ -1,6 +1,4 @@
 "use client";
-/* @skipReactCompilerCheckV3 */
-
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -15,22 +13,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp, signIn } from "@/lib/auth-client";
 import toast from "react-hot-toast";
+import { useSearchParams } from "next/navigation";
 
-const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-  role: z.enum(["CUSTOMER", "PROVIDER"]),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string(),
+    role: z.enum(["CUSTOMER", "PROVIDER"]),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type RegisterInput = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roleFromQuery = searchParams.get("role") as
+    | "CUSTOMER"
+    | "PROVIDER"
+    | null;
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,7 +49,7 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { role: "CUSTOMER" },
+    defaultValues: { role: roleFromQuery || "CUSTOMER" },
   });
 
   const selectedRole = watch("role");
@@ -92,12 +98,10 @@ export default function RegisterPage() {
       <div className="hidden lg:flex flex-1 bg-linear-to-br from-primary to-primary-hover items-center justify-center p-12">
         <div className="text-center text-white">
           <div className="text-8xl mb-6">🍔</div>
-          <h2 className="text-3xl font-bold mb-3">
-            Join MeowMeal Today
-          </h2>
+          <h2 className="text-3xl font-bold mb-3">Join MeowMeal Today</h2>
           <p className="text-white/80 max-w-sm">
-            Create an account and start ordering from the best restaurants
-            in your city.
+            Create an account and start ordering from the best restaurants in
+            your city.
           </p>
           <div className="mt-8 flex flex-col gap-3 text-left max-w-xs mx-auto">
             {[
@@ -106,7 +110,10 @@ export default function RegisterPage() {
               "AI-powered meal recommendations",
               "Exclusive deals and offers",
             ].map((feature) => (
-              <div key={feature} className="flex items-center gap-2 text-sm text-white/90">
+              <div
+                key={feature}
+                className="flex items-center gap-2 text-sm text-white/90"
+              >
                 <div className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                   <span className="text-xs">✓</span>
                 </div>
@@ -122,7 +129,13 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-8">
-            <Image src="/logo.png" alt="MeowMeal" width={36} height={36} className="rounded-lg" />
+            <Image
+              src="/logo.png"
+              alt="MeowMeal"
+              width={36}
+              height={36}
+              className="rounded-lg"
+            />
             <span className="font-bold text-xl text-primary">meowmeal</span>
           </Link>
 
@@ -150,7 +163,10 @@ export default function RegisterPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+          >
             {/* Name */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Full Name</Label>
@@ -161,7 +177,9 @@ export default function RegisterPage() {
                 className={errors.name ? "border-destructive" : ""}
               />
               {errors.name && (
-                <p className="text-xs text-destructive">{errors.name.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
@@ -176,7 +194,9 @@ export default function RegisterPage() {
                 className={errors.email ? "border-destructive" : ""}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -189,18 +209,26 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   {...register("password")}
-                  className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                  className={
+                    errors.password ? "border-destructive pr-10" : "pr-10"
+                  }
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
+                <p className="text-xs text-destructive">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -213,14 +241,22 @@ export default function RegisterPage() {
                   type={showConfirm ? "text" : "password"}
                   placeholder="••••••••"
                   {...register("confirmPassword")}
-                  className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
+                  className={
+                    errors.confirmPassword
+                      ? "border-destructive pr-10"
+                      : "pr-10"
+                  }
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirm ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
               {errors.confirmPassword && (
@@ -275,7 +311,10 @@ export default function RegisterPage() {
 
           <p className="text-sm text-center text-muted-foreground mt-6">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline font-medium">
+            <Link
+              href="/login"
+              className="text-primary hover:underline font-medium"
+            >
               Sign in
             </Link>
           </p>

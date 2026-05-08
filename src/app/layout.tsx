@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
 import { AIChatbot } from "@/components/common/AIChatbot";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "MeowMeal — Food Delivery",
@@ -21,23 +26,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${plusJakartaSans.variable} font-sans antialiased`}>
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>
               {children}
               <AIChatbot />
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 3000,
-                  style: {
-                    background: "var(--card)",
-                    color: "var(--card-foreground)",
-                    border: "1px solid var(--border)",
-                  },
-                }}
-              />
+              <Toaster position="top-right" richColors theme="system" />
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
 import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube } from "react-icons/fa";
 
 const footerLinks = {
@@ -17,78 +17,64 @@ const footerLinks = {
     { href: "/meals?category=burger", label: "Burgers" },
     { href: "/meals?category=pizza", label: "Pizza" },
   ],
-  account: [
-    { href: "/login", label: "Sign In" },
-    { href: "/register", label: "Sign Up" },
-    { href: "/dashboard/customer/orders", label: "My Orders" },
-    { href: "/dashboard/customer/profile", label: "My Profile" },
-  ],
 };
 
 const socialLinks = [
-  {
-    href: "https://facebook.com",
-    icon: FaFacebookF,
-    label: "Facebook",
-  },
-  {
-    href: "https://twitter.com",
-    icon: FaTwitter,
-    label: "Twitter",
-  },
-  {
-    href: "https://instagram.com",
-    icon: FaInstagram,
-    label: "Instagram",
-  },
-  {
-    href: "https://youtube.com",
-    icon: FaYoutube,
-    label: "Youtube",
-  },
+  { href: "https://facebook.com", icon: FaFacebookF, label: "Facebook" },
+  { href: "https://twitter.com", icon: FaTwitter, label: "Twitter" },
+  { href: "https://instagram.com", icon: FaInstagram, label: "Instagram" },
+  { href: "https://youtube.com", icon: FaYoutube, label: "Youtube" },
 ];
 
 export function Footer() {
   return (
-    <footer className="bg-secondary border-t border-border">
+    <footer className="bg-black border-t border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Footer */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 py-14">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4">
+            <Link href="/" className="flex items-center gap-3 mb-5">
               <Image
                 src="/logo.png"
                 alt="MeowMeal"
-                width={40}
-                height={40}
-                className="rounded-lg"
+                width={44}
+                height={44}
+                className="rounded-xl"
               />
-              <span className="font-bold text-2xl text-primary">meowmeal</span>
+              <span className="font-black text-2xl text-primary tracking-tight">
+                meowmeal
+              </span>
             </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-6 max-w-xs">
+            <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-xs">
               Order delicious food from the best restaurants near you. Fast
               delivery, great taste, every time.
             </p>
 
             {/* Contact Info */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <a
                 href="mailto:support@meowmeal.com"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                className="group flex items-center gap-3 text-sm text-white/40 hover:text-primary transition-colors"
               >
-                <Mail className="h-4 w-4 text-primary shrink-0" />
+                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Mail className="h-3.5 w-3.5 text-primary" />
+                </div>
                 support@meowmeal.com
               </a>
               <a
                 href="tel:+8801700000000"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                className="group flex items-center gap-3 text-sm text-white/40 hover:text-primary transition-colors"
               >
-                <Phone className="h-4 w-4 text-primary shrink-0" />
+                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <Phone className="h-3.5 w-3.5 text-primary" />
+                </div>
                 +880 1700-000000
               </a>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
+              <div className="flex items-center gap-3 text-sm text-white/40">
+                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <MapPin className="h-3.5 w-3.5 text-primary" />
+                </div>
                 Dhaka, Bangladesh
               </div>
             </div>
@@ -96,14 +82,17 @@ export function Footer() {
 
           {/* Company Links */}
           <div>
-            <h3 className="font-semibold text-sm mb-4">Company</h3>
-            <ul className="flex flex-col gap-2.5">
+            <h3 className="font-bold text-sm text-white mb-5 uppercase tracking-wider">
+              Company
+            </h3>
+            <ul className="flex flex-col gap-3">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    className="group flex items-center gap-1.5 text-sm text-white/40 hover:text-primary transition-colors"
                   >
+                    <ArrowRight className="h-3 w-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     {link.label}
                   </Link>
                 </li>
@@ -113,31 +102,17 @@ export function Footer() {
 
           {/* Explore Links */}
           <div>
-            <h3 className="font-semibold text-sm mb-4">Explore</h3>
-            <ul className="flex flex-col gap-2.5">
+            <h3 className="font-bold text-sm text-white mb-5 uppercase tracking-wider">
+              Explore
+            </h3>
+            <ul className="flex flex-col gap-3">
               {footerLinks.explore.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    className="group flex items-center gap-1.5 text-sm text-white/40 hover:text-primary transition-colors"
                   >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Account Links */}
-          <div>
-            <h3 className="font-semibold text-sm mb-4">Account</h3>
-            <ul className="flex flex-col gap-2.5">
-              {footerLinks.account.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                    <ArrowRight className="h-3 w-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     {link.label}
                   </Link>
                 </li>
@@ -147,13 +122,13 @@ export function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-border py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="border-t border-white/10 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-white/25">
             © {new Date().getFullYear()} MeowMeal. All rights reserved.
           </p>
 
           {/* Social Links */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {socialLinks.map((social) => (
               <a
                 key={social.label}
@@ -161,9 +136,9 @@ export function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={social.label}
-                className="h-9 w-9 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                className="h-9 w-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-primary hover:bg-primary/10 hover:border-primary/30 transition-all"
               >
-                <social.icon className="h-4 w-4" />
+                <social.icon className="h-3.5 w-3.5" />
               </a>
             ))}
           </div>

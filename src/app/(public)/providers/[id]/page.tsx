@@ -158,7 +158,19 @@ export default function ProviderDetailsPage() {
             {provider.meals && provider.meals.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {provider.meals.map((meal: Meal) => (
-                  <MealCard key={meal.id} meal={meal} />
+                  <MealCard
+                    key={meal.id}
+                    meal={{
+                      ...meal,
+                      provider: {
+                        id: provider.id,
+                        shopName: provider.shopName,
+                        logo: provider.logo,
+                        city: provider.city,
+                        isOpen: provider.isOpen,
+                      },
+                    }}
+                  />
                 ))}
               </div>
             ) : (

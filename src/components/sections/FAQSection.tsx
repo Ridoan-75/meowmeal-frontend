@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 
 const faqs = [
   {
@@ -37,52 +37,90 @@ const faqs = [
 ];
 
 export function FAQSection() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section className="py-16 bg-background">
+    <section className="py-16 bg-secondary/30">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3 text-primary">
             Frequently Asked Questions
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Everything you need to know about MeowMeal
           </p>
         </div>
 
         {/* FAQ Items */}
         <div className="flex flex-col gap-3">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className="bg-card border border-border rounded-2xl overflow-hidden"
-            >
-              <button
-                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-muted/50 transition-colors"
-                onClick={() =>
-                  setOpenIndex(openIndex === index ? null : index)
-                }
+          {faqs.map((faq, index) => {
+            const isOpen = openIndex === index;
+            return (
+              <div
+                key={index}
+                className={`bg-card border rounded-2xl overflow-hidden transition-all duration-200 ${
+                  isOpen
+                    ? "border-primary/30 shadow-md shadow-primary/5"
+                    : "border-border hover:border-primary/20"
+                }`}
               >
-                <span className="font-medium text-sm pr-4">
-                  {faq.question}
-                </span>
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-200 ${
-                    openIndex === index ? "rotate-180" : ""
+                <button
+                  className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
+                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                >
+                  {/* Question */}
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <span
+                      className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-xs font-black transition-colors ${
+                        isOpen
+                          ? "bg-primary text-white"
+                          : "bg-secondary text-muted-foreground"
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                    <span
+                      className={`font-semibold text-sm transition-colors ${
+                        isOpen ? "text-primary" : "text-foreground"
+                      }`}
+                    >
+                      {faq.question}
+                    </span>
+                  </div>
+
+                  {/* Icon */}
+                  <div
+                    className={`shrink-0 h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
+                      isOpen
+                        ? "bg-primary text-white"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {isOpen ? (
+                      <Minus className="h-3.5 w-3.5" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Answer */}
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${
+                    isOpen ? "max-h-48" : "max-h-0"
                   }`}
-                />
-              </button>
-              {openIndex === index && (
-                <div className="px-6 pb-4">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {faq.answer}
-                  </p>
+                >
+                  <div className="px-6 pb-5 pl-[4.25rem]">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {faq.answer}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

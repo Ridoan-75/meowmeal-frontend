@@ -8,6 +8,7 @@ import {
   UtensilsCrossed,
   DollarSign,
   TrendingUp,
+  Mail,
 } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,12 @@ import {
   Legend,
 } from "recharts";
 import api from "@/lib/axios";
+import {
+  OrderStatus,
+  TopMeal,
+  NewsletterSubscriber,
+  RecentOrder,
+} from "@/types";
 
 const statusColor: Record<string, string> = {
   PLACED: "bg-blue-500/10 text-blue-600",
@@ -45,6 +52,14 @@ export default function AdminDashboardPage() {
     queryFn: async () => {
       const res = await api.get("/admin/dashboard");
       return res.data.data;
+    },
+  });
+
+  const { data: subscribers } = useQuery({
+    queryKey: ["newsletter-subscribers"],
+    queryFn: async () => {
+      const res = await api.get("/newsletter?limit=5");
+      return res.data;
     },
   });
 
@@ -154,12 +169,14 @@ export default function AdminDashboardPage() {
                   cy="50%"
                   outerRadius={70}
                 >
-                  {(stats?.ordersByStatus || []).map((_: any, index: number) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={PIE_COLORS[index % PIE_COLORS.length]}
-                    />
-                  ))}
+                  {(stats?.ordersByStatus || []).map(
+                    (_: OrderStatus, index: number) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                      />
+                    ),
+                  )}
                 </Pie>
                 <Tooltip
                   contentStyle={{
@@ -193,10 +210,7 @@ export default function AdminDashboardPage() {
                 tick={{ fontSize: 11 }}
                 stroke="var(--muted-foreground)"
               />
-              <YAxis
-                tick={{ fontSize: 11 }}
-                stroke="var(--muted-foreground)"
-              />
+              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
               <Tooltip
                 contentStyle={{
                   background: "var(--card)",
@@ -242,7 +256,7 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {stats.topMeals.map((meal: any) => (
+                {stats.topMeals.map((meal: TopMeal) => (
                   <tr
                     key={meal.id}
                     className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
@@ -272,6 +286,34 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Newsletter Subscribers */}
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <h2 className="font-semibold">Newsletter Subscribers</h2>
+          <span className="text-xs text-muted-foreground">
+            {subscribers?.meta?.total || 0} total
+          </span>
+        </div>
+        <div className="divide-y divide-border">
+          {subscribers?.data?.map((sub: NewsletterSubscriber) => (
+            <div
+              key={sub.id}
+              className="flex items-center justify-between px-6 py-3"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mail className="h-4 w-4 text-primary" />
+                </div>
+                <span className="text-sm">{sub.email}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {new Date(sub.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Recent Orders */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -305,7 +347,7 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {(stats?.recentOrders || []).map((order: any) => (
+                {(stats?.recentOrders || []).map((order: RecentOrder) => (
                   <tr
                     key={order.id}
                     className="border-b border-border last:border-0 hover:bg-muted/30"
@@ -320,7 +362,7 @@ export default function AdminDashboardPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-0.5">
-                        {order.items.map((item: any) => (
+                        {order.items.map((item) => (
                           <p
                             key={item.id}
                             className="text-xs text-muted-foreground"
