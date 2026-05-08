@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Star, Clock, ShoppingCart, Heart, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Meal } from "@/types";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/AuthProvider";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -13,17 +12,20 @@ import api from "@/lib/axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
+import { useWishlistStore } from "@/store/wishlistStore";
 
 interface MealCardProps {
   meal: Meal;
 }
 
 export function MealCard({ meal }: MealCardProps) {
-  const [liked, setLiked] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const { setCart } = useCartStore();
+  const { wishlistedIds, toggleId } = useWishlistStore();
   const queryClient = useQueryClient();
   const router = useRouter();
+
+  const isWishlisted = wishlistedIds.includes(meal.id);
 
   const addToCartMutation = useMutation({
     mutationFn: async () => {
@@ -44,15 +46,23 @@ export function MealCard({ meal }: MealCardProps) {
     },
   });
 
+  const wishlistMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/wishlist/toggle/${meal.id}`);
+      return res.data.data;
+    },
+    onError: () => {
+      // Revert optimistic update on error
+      toggleId(meal.id);
+      toast.error("Failed to update wishlist");
+    },
+  });
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
       toast.info("Please login to add items to cart", {
-        style: {
-          background: "#FF6B35",
-          color: "#fff",
-          border: "none",
-        },
+        style: { background: "#FF6B35", color: "#fff", border: "none" },
       });
       router.push("/login");
       return;
@@ -64,13 +74,33 @@ export function MealCard({ meal }: MealCardProps) {
     addToCartMutation.mutate();
   };
 
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated || user?.role !== "CUSTOMER") {
+      toast.info("Please login as a customer", {
+        style: { background: "#FF6B35", color: "#fff", border: "none" },
+      });
+      return;
+    }
+
+    // Optimistic update — immediately toggle UI
+    const willBeWishlisted = !isWishlisted;
+    toggleId(meal.id);
+    toast.success(willBeWishlisted ? "Added to wishlist!" : "Removed from wishlist"), {duration: 2000};
+
+    // Then sync with backend silently
+    wishlistMutation.mutate();
+  };
+
   return (
     <div className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/30 hover:-translate-y-2 transition-all duration-300 flex flex-col h-full">
-
       {/* Image */}
       <div className="relative h-52 w-full overflow-hidden bg-secondary">
         <Image
-          src={meal.images?.[0] || "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400"}
+          src={
+            meal.images?.[0] ||
+            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400"
+          }
           alt={meal.title}
           fill
           className="object-cover group-hover:scale-110 transition-transform duration-700"
@@ -98,18 +128,17 @@ export function MealCard({ meal }: MealCardProps) {
             <div />
           )}
 
-          {/* Like button */}
+          {/* Like button — Optimistic */}
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              setLiked(!liked);
-            }}
+            onClick={handleWishlist}
             className="h-8 w-8 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer"
           >
             <Heart
               className={cn(
-                "h-3.5 w-3.5 transition-all",
-                liked ? "fill-red-500 text-red-500 scale-110" : "text-muted-foreground"
+                "h-4 w-4 transition-all duration-200",
+                isWishlisted
+                  ? "fill-red-500 text-red-500 scale-110"
+                  : "text-muted-foreground hover:text-red-400"
               )}
             />
           </button>
@@ -117,7 +146,6 @@ export function MealCard({ meal }: MealCardProps) {
 
         {/* Bottom info overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
-          {/* Rating */}
           {meal.avgRating !== undefined && meal.avgRating > 0 && (
             <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
               <Star className="h-3 w-3 fill-accent text-accent" />
@@ -126,8 +154,6 @@ export function MealCard({ meal }: MealCardProps) {
               </span>
             </div>
           )}
-
-          {/* Prep time */}
           <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
             <Clock className="h-3 w-3 text-white/80" />
             <span className="text-white text-xs font-medium">
@@ -139,7 +165,6 @@ export function MealCard({ meal }: MealCardProps) {
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1 gap-3">
-
         {/* Provider + Category */}
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
@@ -171,7 +196,6 @@ export function MealCard({ meal }: MealCardProps) {
 
         {/* Price + Buttons */}
         <div className="mt-auto pt-3 border-t border-border flex flex-col gap-2.5">
-          {/* Price */}
           <div className="flex items-center justify-between">
             <div>
               <span className="text-xl font-black text-primary">
@@ -188,9 +212,7 @@ export function MealCard({ meal }: MealCardProps) {
             )}
           </div>
 
-          {/* Buttons Row */}
           <div className="flex items-center gap-2">
-            {/* View Details */}
             <Link href={`/meals/${meal.id}`} className="flex-1">
               <button className="w-full h-9 rounded-xl border border-border hover:border-primary hover:text-primary text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 group/btn">
                 View Details
@@ -198,7 +220,6 @@ export function MealCard({ meal }: MealCardProps) {
               </button>
             </Link>
 
-            {/* Add to Cart */}
             <button
               onClick={handleAddToCart}
               disabled={addToCartMutation.isPending || !meal.isAvailable}

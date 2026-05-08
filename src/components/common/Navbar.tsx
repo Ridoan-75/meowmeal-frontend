@@ -22,9 +22,11 @@ import {
   LogOut,
   LayoutDashboard,
   UtensilsCrossed,
+  Heart,
   ChevronDown,
 } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
+import { useWishlistStore } from "@/store/wishlistStore";
 import { signOut } from "@/lib/auth-client";
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
@@ -42,6 +44,7 @@ const navLinks = [
 export function Navbar() {
   const { user, isAuthenticated } = useAuth();
   const { totalItems } = useCartStore();
+  const { count: wishlistCount } = useWishlistStore();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -121,20 +124,37 @@ export function Navbar() {
                 <NotificationBell />
 
                 {user?.role === "CUSTOMER" && (
-                  <Link href="/dashboard/customer/cart">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="relative h-12 w-12 rounded-2xl hover:bg-primary/10 transition-all cursor-pointer"
-                    >
-                      <ShoppingCart className="h-5 w-5" />
-                      {totalItems > 0 && (
-                        <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
-                          {totalItems > 9 ? "9+" : totalItems}
-                        </span>
-                      )}
-                    </Button>
-                  </Link>
+                  <>
+                    <Link href="/dashboard/customer/wishlist">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative h-12 w-12 rounded-2xl hover:bg-primary/10 transition-all cursor-pointer"
+                      >
+                        <Heart className="h-5 w-5" />
+                        {wishlistCount > 0 && (
+                          <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                            {wishlistCount > 9 ? "9+" : wishlistCount}
+                          </span>
+                        )}
+                      </Button>
+                    </Link>
+
+                    <Link href="/dashboard/customer/cart">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative h-12 w-12 rounded-2xl hover:bg-primary/10 transition-all cursor-pointer"
+                      >
+                        <ShoppingCart className="h-5 w-5" />
+                        {totalItems > 0 && (
+                          <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
+                            {totalItems > 9 ? "9+" : totalItems}
+                          </span>
+                        )}
+                      </Button>
+                    </Link>
+                  </>
                 )}
 
                 <DropdownMenu>
