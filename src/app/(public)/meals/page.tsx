@@ -1,382 +1,591 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Star,
+  Clock,
+  MapPin,
+  ShoppingCart,
+  Plus,
+  Minus,
+  ChevronLeft,
+  Store,
+  CheckCircle,
+  Heart,
+  Zap,
+  Share2,
+  Send,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { MealCard } from "@/components/common/MealCard";
-import { SkeletonCard } from "@/components/common/SkeletonCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { Navbar } from "@/components/common/Navbar";
 import { Footer } from "@/components/common/Footer";
+import { MealCard } from "@/components/common/MealCard";
 import api from "@/lib/axios";
-import { Meal, Category } from "@/types";
+import { Meal, Review } from "@/types";
+import { useAuth } from "@/providers/AuthProvider";
+import { AxiosError } from "axios";
+import { useCartStore } from "@/store/cartStore";
+import { useWishlistStore } from "@/store/wishlistStore";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-export default function MealsPage() {
-  const searchParams = useSearchParams();
+export default function MealDetailsPage() {
+  const { id } = useParams();
   const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
+  const { setCart } = useCartStore();
+  const { wishlistedIds, toggleId } = useWishlistStore();
+  const queryClient = useQueryClient();
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [hoveredStar, setHoveredStar] = useState(0);
 
-  const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [debouncedSearch, setDebouncedSearch] = useState(search);
-  const [categoryId, setCategoryId] = useState(searchParams.get("categoryId") || "");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [sortBy, setSortBy] = useState("createdAt");
-  const [sortOrder, setSortOrder] = useState("desc");
-  const [page, setPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
+  const isWishlisted = wishlistedIds.includes(id as string);
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // Categories
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
+  const { data: meal, isLoading } = useQuery({
+    queryKey: ["meal", id],
     queryFn: async () => {
-      const res = await api.get("/categories");
-      return res.data.data as Category[];
-    },
-  });
-
-  // Meals
-  const { data, isLoading } = useQuery({
-    queryKey: [
-      "meals",
-      debouncedSearch,
-      categoryId,
-      minPrice,
-      maxPrice,
-      sortBy,
-      sortOrder,
-      page,
-    ],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: "12",
-        sortBy,
-        sortOrder,
-      });
-      if (debouncedSearch) params.set("search", debouncedSearch);
-      if (categoryId) params.set("categoryId", categoryId);
-      if (minPrice) params.set("minPrice", minPrice);
-      if (maxPrice) params.set("maxPrice", maxPrice);
-
-      const res = await api.get(`/meals?${params.toString()}`);
-      return res.data as {
-        data: Meal[];
-        meta: { total: number; totalPages: number; page: number };
+      const res = await api.get(`/meals/${id}`);
+      return res.data.data as Meal & {
+        reviews: Review[];
+        totalReviews: number;
+        avgRating: number;
       };
     },
   });
 
-  const meals = data?.data || [];
-  const meta = data?.meta;
+  const { data: relatedMeals } = useQuery({
+    queryKey: ["related-meals", meal?.categoryId],
+    queryFn: async () => {
+      const res = await api.get(`/meals?categoryId=${meal?.categoryId}&limit=4`);
+      return (res.data.data as Meal[]).filter((m) => m.id !== id);
+    },
+    enabled: !!meal?.categoryId,
+  });
 
-  const clearFilters = () => {
-    setSearch("");
-    setCategoryId("");
-    setMinPrice("");
-    setMaxPrice("");
-    setSortBy("createdAt");
-    setSortOrder("desc");
-    setPage(1);
+  const addToCartMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post("/cart", { mealId: id, quantity });
+      return res.data;
+    },
+    onSuccess: async () => {
+      toast.success("Added to cart!", { duration: 2000 });
+      const cartRes = await api.get("/cart");
+      setCart(cartRes.data.data);
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+    onError: () => toast.error("Failed to add to cart"),
+  });
+
+  const wishlistMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/wishlist/toggle/${id}`);
+      return res.data.data;
+    },
+    onError: () => {
+      toggleId(id as string);
+      toast.error("Failed to update wishlist");
+    },
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post("/reviews", {
+        mealId: id,
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success("Review submitted!", { duration: 2000 });
+      setReviewComment("");
+      setReviewRating(5);
+      queryClient.invalidateQueries({ queryKey: ["meal", id] });
+    },
+    onError: (err) => {
+      const error = err as AxiosError<{ message: string }>;
+      toast.error(error?.response?.data?.message || "Failed to submit review");
+    },
+  });
+
+  const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      toast.info("Please login first", {
+        style: { background: "#FF6B35", color: "#fff", border: "none" },
+      });
+      router.push("/login");
+      return;
+    }
+    if (user?.role !== "CUSTOMER") {
+      toast.error("Only customers can order");
+      return;
+    }
+    addToCartMutation.mutate();
   };
 
-  const hasActiveFilters =
-    debouncedSearch || categoryId || minPrice || maxPrice;
+  const handleDirectOrder = () => {
+    if (!isAuthenticated) {
+      toast.info("Please login first", {
+        style: { background: "#FF6B35", color: "#fff", border: "none" },
+      });
+      router.push("/login");
+      return;
+    }
+    if (user?.role !== "CUSTOMER") {
+      toast.error("Only customers can order");
+      return;
+    }
+    addToCartMutation.mutate();
+    setTimeout(() => router.push("/dashboard/customer/cart"), 800);
+  };
+
+  const handleWishlist = () => {
+    if (!isAuthenticated || user?.role !== "CUSTOMER") {
+      toast.info("Please login as a customer", {
+        style: { background: "#FF6B35", color: "#fff", border: "none" },
+      });
+      return;
+    }
+    const willBeWishlisted = !isWishlisted;
+    toggleId(id as string);
+    toast.success(
+      willBeWishlisted ? "Added to wishlist!" : "Removed from wishlist",
+      { duration: 2000 }
+    );
+    wishlistMutation.mutate();
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({ title: meal?.title, url: window.location.href });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied!", { duration: 2000 });
+    }
+  };
+
+  const handleReviewSubmit = () => {
+    if (!isAuthenticated) {
+      toast.info("Please login first", {
+        style: { background: "#FF6B35", color: "#fff", border: "none" },
+      });
+      return;
+    }
+    if (!reviewComment.trim()) {
+      toast.error("Please write a comment");
+      return;
+    }
+    reviewMutation.mutate();
+  };
+
+  if (isLoading) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <Skeleton className="h-5 w-32 mb-6" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+              <Skeleton className="h-80 rounded-2xl" />
+              <div className="flex flex-col gap-4">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!meal) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🍽️</div>
+            <h2 className="text-xl font-bold mb-2">Meal not found</h2>
+            <Button
+              onClick={() => router.push("/meals")}
+              className="bg-primary hover:bg-primary-hover text-white rounded-xl"
+            >
+              Browse Meals
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
       <main className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-1">
-              Browse Meals
-            </h1>
-            <p className="text-muted-foreground">
-              {meta?.total
-                ? `${meta.total} meals available`
-                : "Find your perfect meal"}
-            </p>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-          {/* Search + Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 mb-6">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search meals, restaurants..."
-                className="pl-10 h-11"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+          {/* Back */}
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 group"
+          >
+            <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
+            Back to meals
+          </button>
 
-            {/* Sort */}
-            <Select
-              value={`${sortBy}-${sortOrder}`}
-              onValueChange={(val) => {
-                const [by, order] = val.split("-");
-                setSortBy(by);
-                setSortOrder(order);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-48 h-11">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="createdAt-desc">Newest First</SelectItem>
-                <SelectItem value="createdAt-asc">Oldest First</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                <SelectItem value="title-asc">Name: A to Z</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Main Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
 
-            {/* Filter Toggle */}
-            <Button
-              variant="outline"
-              className="h-11 gap-2 shrink-0"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
-              {hasActiveFilters && (
-                <span className="h-5 w-5 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-                  !
-                </span>
-              )}
-            </Button>
-          </div>
-
-          {/* Filter Panel */}
-          {showFilters && (
-            <div className="bg-card border border-border rounded-2xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Category Filter */}
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  Category
-                </label>
-                <Select
-                  value={categoryId || "all"}
-                  onValueChange={(val) => {
-                    setCategoryId(val === "all" ? "" : val);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="All categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories?.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Min Price */}
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  Min Price (৳)
-                </label>
-                <Input
-                  type="number"
-                  value={minPrice}
-                  onChange={(e) => {
-                    setMinPrice(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="0"
-                  className="h-10"
+            {/* Images */}
+            <div className="flex flex-col gap-3">
+              <div className="relative h-64 sm:h-80 lg:h-96 rounded-2xl overflow-hidden bg-secondary group">
+                <Image
+                  src={meal.images[selectedImage] || "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700"}
+                  alt={meal.title}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  priority
                 />
-              </div>
-
-              {/* Max Price */}
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">
-                  Max Price (৳)
-                </label>
-                <Input
-                  type="number"
-                  value={maxPrice}
-                  onChange={(e) => {
-                    setMaxPrice(e.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="1000"
-                  className="h-10"
-                />
-              </div>
-
-              {/* Clear Filters */}
-              {hasActiveFilters && (
-                <div className="sm:col-span-3 flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="text-destructive hover:text-destructive"
+                {!meal.isAvailable && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
+                    <Badge variant="destructive" className="text-base px-4 py-2 font-bold">
+                      Currently Unavailable
+                    </Badge>
+                  </div>
+                )}
+                <div className="absolute top-3 right-3 flex flex-col gap-2">
+                  <button
+                    onClick={handleWishlist}
+                    className="h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer"
                   >
-                    <X className="h-4 w-4 mr-1" />
-                    Clear all filters
-                  </Button>
+                    <Heart className={cn("h-4 w-4 transition-all", isWishlisted ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer"
+                  >
+                    <Share2 className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </div>
+                {meal.avgRating > 0 && (
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <Star className="h-3.5 w-3.5 fill-accent text-accent" />
+                    <span className="text-white text-sm font-bold">{meal.avgRating.toFixed(1)}</span>
+                    <span className="text-white/60 text-xs">({meal.totalReviews})</span>
+                  </div>
+                )}
+              </div>
+              {meal.images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {meal.images.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(i)}
+                      className={cn(
+                        "relative h-16 w-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all cursor-pointer",
+                        selectedImage === i ? "border-primary shadow-md" : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      <Image src={img} alt={`${meal.title} ${i + 1}`} fill className="object-cover" />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-          )}
 
-          {/* Active Filter Tags */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {debouncedSearch && (
-                <Badge variant="secondary" className="gap-1">
-                  Search: {debouncedSearch}
-                  <button onClick={() => setSearch("")}>
-                    <X className="h-3 w-3" />
-                  </button>
+            {/* Details */}
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-primary/10 text-primary border-0 font-semibold">
+                  {meal.category.name}
                 </Badge>
-              )}
-              {categoryId && (
-                <Badge variant="secondary" className="gap-1">
-                  {categories?.find((c) => c.id === categoryId)?.name}
-                  <button onClick={() => setCategoryId("")}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-              {minPrice && (
-                <Badge variant="secondary" className="gap-1">
-                  Min: ৳{minPrice}
-                  <button onClick={() => setMinPrice("")}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-              {maxPrice && (
-                <Badge variant="secondary" className="gap-1">
-                  Max: ৳{maxPrice}
-                  <button onClick={() => setMaxPrice("")}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Meals Grid */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          ) : meals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="text-6xl mb-4">🍽️</div>
-              <h3 className="text-lg font-semibold mb-2">No meals found</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Try adjusting your search or filters
-              </p>
-              <Button
-                variant="outline"
-                onClick={clearFilters}
-                className="border-primary text-primary"
-              >
-                Clear filters
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {meals.map((meal) => (
-                <MealCard key={meal.id} meal={meal} />
-              ))}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {meta && meta.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-10">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                Previous
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: meta.totalPages }, (_, i) => i + 1)
-                  .filter(
-                    (p) =>
-                      p === 1 ||
-                      p === meta.totalPages ||
-                      Math.abs(p - page) <= 1
-                  )
-                  .map((p, i, arr) => (
-                    <>
-                      {i > 0 && arr[i - 1] !== p - 1 && (
-                        <span key={`dot-${p}`} className="text-muted-foreground px-1">
-                          ...
-                        </span>
-                      )}
-                      <Button
-                        key={p}
-                        variant={page === p ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setPage(p)}
-                        className={
-                          page === p
-                            ? "bg-primary text-white h-8 w-8 p-0"
-                            : "h-8 w-8 p-0"
-                        }
-                      >
-                        {p}
-                      </Button>
-                    </>
-                  ))}
+                {meal.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="font-medium">#{tag}</Badge>
+                ))}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setPage((p) => Math.min(meta.totalPages, p + 1))
-                }
-                disabled={page === meta.totalPages}
+
+              <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
+                {meal.title}
+              </h1>
+
+              <div className="flex items-center gap-3 flex-wrap">
+                {meal.avgRating > 0 && (
+                  <div className="flex items-center gap-1.5 bg-accent/10 px-3 py-1.5 rounded-full">
+                    <Star className="h-3.5 w-3.5 fill-accent text-accent" />
+                    <span className="font-bold text-accent">{meal.avgRating.toFixed(1)}</span>
+                    <span className="text-muted-foreground text-xs">({meal.totalReviews} reviews)</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5 bg-secondary px-3 py-1.5 rounded-full text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span className="font-medium text-sm">{meal.prepTime} min</span>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
+                {meal.description}
+              </p>
+
+              <div className="flex items-end gap-2">
+                <span className="text-4xl font-black text-primary">৳{meal.price}</span>
+                <span className="text-sm text-muted-foreground mb-1">per serving</span>
+              </div>
+
+              {/* Provider */}
+              <Link
+                href={`/providers/${meal.provider.id}`}
+                className="group flex items-center gap-3 p-4 bg-secondary hover:bg-muted rounded-2xl transition-all border border-transparent hover:border-primary/20"
               >
-                Next
-              </Button>
+                <div className="relative h-12 w-12 rounded-xl overflow-hidden shrink-0 bg-primary/10">
+                  {meal.provider.logo ? (
+                    <Image
+                      src={meal.provider.logo}
+                      alt={meal.provider.shopName}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center">
+                      <Store className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">
+                    {meal.provider.shopName}
+                  </p>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                    <MapPin className="h-3 w-3" />
+                    {meal.provider.city}
+                  </div>
+                </div>
+                <Badge className={cn("shrink-0 border-0 font-semibold", meal.provider.isOpen ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600")}>
+                  {meal.provider.isOpen ? "Open" : "Closed"}
+                </Badge>
+              </Link>
+
+              {/* Quantity + Buttons */}
+              {meal.isAvailable && meal.provider.isOpen && (
+                <div className="flex flex-col gap-4">
+                  {/* Quantity */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">Quantity</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        className="h-9 w-9 rounded-xl border border-border hover:border-primary hover:text-primary flex items-center justify-center transition-all cursor-pointer"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="w-8 text-center font-extrabold text-lg">{quantity}</span>
+                      <button
+                        onClick={() => setQuantity((q) => q + 1)}
+                        className="h-9 w-9 rounded-xl border border-border hover:border-primary hover:text-primary flex items-center justify-center transition-all cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between py-3 px-4 bg-secondary rounded-xl">
+                    <span className="text-sm text-muted-foreground">Total Amount</span>
+                    <span className="text-xl font-black text-primary">৳{(meal.price * quantity).toFixed(0)}</span>
+                  </div>
+
+                  {/* Buttons — Fixed Row */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={handleDirectOrder}
+                      disabled={addToCartMutation.isPending}
+                      className="flex-1 h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl cursor-pointer shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all gap-2"
+                    >
+                      <Zap className="h-4 w-4 shrink-0" />
+                      <span>Order Now</span>
+                    </Button>
+
+                    <Button
+                      onClick={handleAddToCart}
+                      disabled={addToCartMutation.isPending}
+                      variant="outline"
+                      className="flex-1 h-12 border-primary text-primary hover:bg-primary hover:text-white font-bold rounded-xl cursor-pointer transition-all gap-2"
+                    >
+                      {addToCartMutation.isPending ? (
+                        <>
+                          <span className="h-4 w-4 border-2 border-current/30 border-t-current rounded-full animate-spin shrink-0" />
+                          <span>Adding...</span>
+                        </>
+                      ) : addToCartMutation.isSuccess ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 shrink-0" />
+                          <span>Added!</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="h-4 w-4 shrink-0" />
+                          <span>Add to Cart</span>
+                        </>
+                      )}
+                    </Button>
+
+                    <button
+                      onClick={handleWishlist}
+                      className={cn(
+                        "h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 transition-all cursor-pointer",
+                        isWishlisted
+                          ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20"
+                          : "border-border hover:border-red-400 hover:text-red-400"
+                      )}
+                    >
+                      <Heart className={cn("h-5 w-5 transition-all", isWishlisted ? "fill-red-500 text-red-500" : "")} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reviews */}
+          <div className="mb-12">
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-extrabold">Reviews</h2>
+              {meal.totalReviews > 0 && (
+                <Badge className="bg-primary/10 text-primary border-0 font-bold">
+                  {meal.totalReviews}
+                </Badge>
+              )}
+            </div>
+
+            {/* Write Review — Customer only */}
+            {isAuthenticated && user?.role === "CUSTOMER" && (
+              <div className="bg-card border border-border rounded-2xl p-5 mb-6 flex flex-col gap-4">
+                <h3 className="font-bold text-sm">Write a Review</h3>
+
+                {/* Star Rating */}
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setReviewRating(star)}
+                      onMouseEnter={() => setHoveredStar(star)}
+                      onMouseLeave={() => setHoveredStar(0)}
+                      className="cursor-pointer transition-transform hover:scale-110"
+                    >
+                      <Star
+                        className={cn(
+                          "h-7 w-7 transition-colors",
+                          star <= (hoveredStar || reviewRating)
+                            ? "fill-accent text-accent"
+                            : "text-border"
+                        )}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-sm text-muted-foreground font-medium">
+                    {reviewRating === 1 ? "Poor" :
+                     reviewRating === 2 ? "Fair" :
+                     reviewRating === 3 ? "Good" :
+                     reviewRating === 4 ? "Very Good" : "Excellent"}
+                  </span>
+                </div>
+
+                {/* Comment */}
+                <Textarea
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Share your experience with this meal..."
+                  className="resize-none rounded-xl min-h-[80px] text-sm"
+                />
+
+                <Button
+                  onClick={handleReviewSubmit}
+                  disabled={reviewMutation.isPending || !reviewComment.trim()}
+                  className="w-full sm:w-auto sm:self-end h-10 bg-primary hover:bg-primary-hover text-white rounded-xl cursor-pointer gap-2 font-semibold"
+                >
+                  {reviewMutation.isPending ? (
+                    <>
+                      <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Submit Review
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Reviews Grid */}
+            {meal.reviews && meal.reviews.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {meal.reviews.map((review: Review) => (
+                  <div
+                    key={review.id}
+                    className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/20 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-extrabold text-sm shrink-0">
+                        {review.customer.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">{review.customer.name}</p>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} className={cn("h-3 w-3", i < review.rating ? "fill-accent text-accent" : "text-border")} />
+                          ))}
+                        </div>
+                      </div>
+                      {review.sentiment && (
+                        <Badge className={cn("text-xs border-0 shrink-0",
+                          review.sentiment === "positive" ? "bg-green-500/10 text-green-600" :
+                          review.sentiment === "negative" ? "bg-red-500/10 text-red-600" :
+                          "bg-gray-500/10 text-gray-600"
+                        )}>
+                          {review.sentiment}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {review.comment}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-card border border-border rounded-2xl">
+                <Star className="h-10 w-10 mx-auto mb-3 text-muted-foreground/20" />
+                <p className="font-semibold mb-1">No reviews yet</p>
+                <p className="text-sm text-muted-foreground">Be the first to review this meal</p>
+              </div>
+            )}
+          </div>
+
+          {/* Related Meals */}
+          {relatedMeals && relatedMeals.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-xl font-extrabold mb-6">You Might Also Like</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                {relatedMeals.slice(0, 4).map((m) => (
+                  <MealCard key={m.id} meal={m} />
+                ))}
+              </div>
             </div>
           )}
         </div>
