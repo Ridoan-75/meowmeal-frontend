@@ -14,12 +14,14 @@ export function FeaturedMeals() {
   const { data, isLoading } = useQuery({
     queryKey: ["featured-meals"],
     queryFn: async () => {
-      const res = await api.get(
-        "/meals?limit=8&sortBy=createdAt&sortOrder=desc"
-      );
-      return res.data.data as Meal[];
+      const res = await api.get("/meals?limit=8&sortBy=createdAt&sortOrder=desc");
+      // response structure: { data: Meal[] } or { data: { meals: Meal[] } }
+      const raw = res.data.data;
+      return (Array.isArray(raw) ? raw : raw?.meals || []) as Meal[];
     },
   });
+
+  const meals = Array.isArray(data) ? data : [];
 
   return (
     <section className="py-16 bg-background">
@@ -50,10 +52,17 @@ export function FeaturedMeals() {
             ? Array.from({ length: 8 }).map((_, i) => (
                 <SkeletonCard key={i} />
               ))
-            : data?.map((meal) => (
+            : meals.map((meal) => (
                 <MealCard key={meal.id} meal={meal} />
               ))}
         </div>
+
+        {/* Empty State */}
+        {!isLoading && meals.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="text-sm">No meals available right now.</p>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,590 +1,265 @@
 "use client";
 
+import { CustomSelect } from "@/components/common/CustomSelect";
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import {
-  Star,
-  Clock,
-  MapPin,
-  ShoppingCart,
-  Plus,
-  Minus,
-  ChevronLeft,
-  Store,
-  CheckCircle,
-  Heart,
-  Zap,
-  Share2,
-  Send,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
+import { useQuery } from "@tanstack/react-query";
 import { Navbar } from "@/components/common/Navbar";
 import { Footer } from "@/components/common/Footer";
 import { MealCard } from "@/components/common/MealCard";
+import { SkeletonCard } from "@/components/common/SkeletonCard";
+import {
+  Search,
+  UtensilsCrossed,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  ChevronDown,
+} from "lucide-react";
 import api from "@/lib/axios";
-import { Meal, Review } from "@/types";
-import { useAuth } from "@/providers/AuthProvider";
-import { AxiosError } from "axios";
-import { useCartStore } from "@/store/cartStore";
-import { useWishlistStore } from "@/store/wishlistStore";
-import { toast } from "sonner";
+import { Meal, Category } from "@/types";
 import { cn } from "@/lib/utils";
 
-export default function MealDetailsPage() {
-  const { id } = useParams();
-  const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
-  const { setCart } = useCartStore();
-  const { wishlistedIds, toggleId } = useWishlistStore();
-  const queryClient = useQueryClient();
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState("");
-  const [hoveredStar, setHoveredStar] = useState(0);
+interface MealsResponse {
+  meals: Meal[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
 
-  const isWishlisted = wishlistedIds.includes(id as string);
+export default function MealsPage() {
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [page, setPage] = useState(1);
 
-  const { data: meal, isLoading } = useQuery({
-    queryKey: ["meal", id],
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    clearTimeout(
+      (window as Window & { __mealSearch?: ReturnType<typeof setTimeout> })
+        .__mealSearch,
+    );
+    (
+      window as Window & { __mealSearch?: ReturnType<typeof setTimeout> }
+    ).__mealSearch = setTimeout(() => {
+      setDebouncedSearch(val);
+      setPage(1);
+    }, 500);
+  };
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
     queryFn: async () => {
-      const res = await api.get(`/meals/${id}`);
-      return res.data.data as Meal & {
-        reviews: Review[];
-        totalReviews: number;
-        avgRating: number;
+      const res = await api.get("/categories");
+      return res.data.data as Category[];
+    },
+  });
+
+  const { data, isLoading } = useQuery<MealsResponse>({
+    queryKey: ["meals-page", debouncedSearch, selectedCategory, sortBy, page],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "12",
+        sortBy,
+        sortOrder: "desc",
+      });
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (selectedCategory) params.set("categoryId", selectedCategory);
+      const res = await api.get(`/meals?${params.toString()}`);
+      const raw = res.data.data;
+      return {
+        meals: (Array.isArray(raw)
+          ? raw
+          : ((raw as { meals?: Meal[] })?.meals ?? [])) as Meal[],
+        meta: res.data.meta,
       };
     },
   });
 
-  const { data: relatedMeals } = useQuery({
-    queryKey: ["related-meals", meal?.categoryId],
-    queryFn: async () => {
-      const res = await api.get(`/meals?categoryId=${meal?.categoryId}&limit=4`);
-      return (res.data.data as Meal[]).filter((m) => m.id !== id);
-    },
-    enabled: !!meal?.categoryId,
-  });
-
-  const addToCartMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post("/cart", { mealId: id, quantity });
-      return res.data;
-    },
-    onSuccess: async () => {
-      toast.success("Added to cart!", { duration: 2000 });
-      const cartRes = await api.get("/cart");
-      setCart(cartRes.data.data);
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-    },
-    onError: () => toast.error("Failed to add to cart"),
-  });
-
-  const wishlistMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post(`/wishlist/toggle/${id}`);
-      return res.data.data;
-    },
-    onError: () => {
-      toggleId(id as string);
-      toast.error("Failed to update wishlist");
-    },
-  });
-
-  const reviewMutation = useMutation({
-    mutationFn: async () => {
-      const res = await api.post("/reviews", {
-        mealId: id,
-        rating: reviewRating,
-        comment: reviewComment,
-      });
-      return res.data;
-    },
-    onSuccess: () => {
-      toast.success("Review submitted!", { duration: 2000 });
-      setReviewComment("");
-      setReviewRating(5);
-      queryClient.invalidateQueries({ queryKey: ["meal", id] });
-    },
-    onError: (err) => {
-      const error = err as AxiosError<{ message: string }>;
-      toast.error(error?.response?.data?.message || "Failed to submit review");
-    },
-  });
-
-  const handleAddToCart = () => {
-    if (!isAuthenticated) {
-      toast.info("Please login first", {
-        style: { background: "#FF6B35", color: "#fff", border: "none" },
-      });
-      router.push("/login");
-      return;
-    }
-    if (user?.role !== "CUSTOMER") {
-      toast.error("Only customers can order");
-      return;
-    }
-    addToCartMutation.mutate();
-  };
-
-  const handleDirectOrder = () => {
-    if (!isAuthenticated) {
-      toast.info("Please login first", {
-        style: { background: "#FF6B35", color: "#fff", border: "none" },
-      });
-      router.push("/login");
-      return;
-    }
-    if (user?.role !== "CUSTOMER") {
-      toast.error("Only customers can order");
-      return;
-    }
-    addToCartMutation.mutate();
-    setTimeout(() => router.push("/dashboard/customer/cart"), 800);
-  };
-
-  const handleWishlist = () => {
-    if (!isAuthenticated || user?.role !== "CUSTOMER") {
-      toast.info("Please login as a customer", {
-        style: { background: "#FF6B35", color: "#fff", border: "none" },
-      });
-      return;
-    }
-    const willBeWishlisted = !isWishlisted;
-    toggleId(id as string);
-    toast.success(
-      willBeWishlisted ? "Added to wishlist!" : "Removed from wishlist",
-      { duration: 2000 }
-    );
-    wishlistMutation.mutate();
-  };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({ title: meal?.title, url: window.location.href });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied!", { duration: 2000 });
-    }
-  };
-
-  const handleReviewSubmit = () => {
-    if (!isAuthenticated) {
-      toast.info("Please login first", {
-        style: { background: "#FF6B35", color: "#fff", border: "none" },
-      });
-      return;
-    }
-    if (!reviewComment.trim()) {
-      toast.error("Please write a comment");
-      return;
-    }
-    reviewMutation.mutate();
-  };
-
-  if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <main className="min-h-screen bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <Skeleton className="h-5 w-32 mb-6" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              <Skeleton className="h-80 rounded-2xl" />
-              <div className="flex flex-col gap-4">
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  if (!meal) {
-    return (
-      <>
-        <Navbar />
-        <main className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">🍽️</div>
-            <h2 className="text-xl font-bold mb-2">Meal not found</h2>
-            <Button
-              onClick={() => router.push("/meals")}
-              className="bg-primary hover:bg-primary-hover text-white rounded-xl"
-            >
-              Browse Meals
-            </Button>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
+  const meals = data?.meals ?? [];
+  const meta = data?.meta;
 
   return (
     <>
       <Navbar />
       <main className="min-h-screen bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          {/* Header */}
+          <div className="mb-8">
+            <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-1">
+              Our Menu
+            </p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Browse All Meals
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              {meta?.total
+                ? `${meta.total} meals available`
+                : "Discover delicious meals"}
+            </p>
+          </div>
 
-          {/* Back */}
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 group"
-          >
-            <ChevronLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-            Back to meals
-          </button>
-
-          {/* Main Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
-
-            {/* Images */}
-            <div className="flex flex-col gap-3">
-              <div className="relative h-64 sm:h-80 lg:h-96 rounded-2xl overflow-hidden bg-secondary group">
-                <Image
-                  src={meal.images[selectedImage] || "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=700"}
-                  alt={meal.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  priority
-                />
-                {!meal.isAvailable && (
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
-                    <Badge variant="destructive" className="text-base px-4 py-2 font-bold">
-                      Currently Unavailable
-                    </Badge>
-                  </div>
-                )}
-                <div className="absolute top-3 right-3 flex flex-col gap-2">
-                  <button
-                    onClick={handleWishlist}
-                    className="h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer"
-                  >
-                    <Heart className={cn("h-4 w-4 transition-all", isWishlisted ? "fill-red-500 text-red-500" : "text-muted-foreground")} />
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="h-9 w-9 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer"
-                  >
-                    <Share2 className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </div>
-                {meal.avgRating > 0 && (
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                    <Star className="h-3.5 w-3.5 fill-accent text-accent" />
-                    <span className="text-white text-sm font-bold">{meal.avgRating.toFixed(1)}</span>
-                    <span className="text-white/60 text-xs">({meal.totalReviews})</span>
-                  </div>
-                )}
-              </div>
-              {meal.images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {meal.images.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImage(i)}
-                      className={cn(
-                        "relative h-16 w-16 rounded-xl overflow-hidden border-2 shrink-0 transition-all cursor-pointer",
-                        selectedImage === i ? "border-primary shadow-md" : "border-border hover:border-primary/50"
-                      )}
-                    >
-                      <Image src={img} alt={`${meal.title} ${i + 1}`} fill className="object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
+          {/* Search + Sort */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Search meals..."
+                className="w-full h-11 pl-10 pr-4 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-all"
+              />
             </div>
+            <CustomSelect
+              value={sortBy}
+              onChange={(val) => {
+                setSortBy(val);
+                setPage(1);
+              }}
+              options={[
+                { value: "createdAt", label: "Newest First" },
+                { value: "price", label: "Price: Low to High" },
+                { value: "prepTime", label: "Prep Time" },
+              ]}
+              icon={<SlidersHorizontal className="h-4 w-4" />}
+            />
+          </div>
 
-            {/* Details */}
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-wrap gap-2">
-                <Badge className="bg-primary/10 text-primary border-0 font-semibold">
-                  {meal.category.name}
-                </Badge>
-                {meal.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="font-medium">#{tag}</Badge>
-                ))}
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-extrabold leading-tight">
-                {meal.title}
-              </h1>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                {meal.avgRating > 0 && (
-                  <div className="flex items-center gap-1.5 bg-accent/10 px-3 py-1.5 rounded-full">
-                    <Star className="h-3.5 w-3.5 fill-accent text-accent" />
-                    <span className="font-bold text-accent">{meal.avgRating.toFixed(1)}</span>
-                    <span className="text-muted-foreground text-xs">({meal.totalReviews} reviews)</span>
-                  </div>
+          {/* Category Filter */}
+          <div className="flex items-center gap-2 flex-wrap mb-8">
+            <button
+              onClick={() => {
+                setSelectedCategory("");
+                setPage(1);
+              }}
+              className={cn(
+                "h-9 px-4 rounded-xl text-sm font-semibold transition-all cursor-pointer",
+                !selectedCategory
+                  ? "bg-primary text-white shadow-sm shadow-primary/25"
+                  : "border border-border hover:bg-muted",
+              )}
+            >
+              All
+            </button>
+            {categories?.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.id);
+                  setPage(1);
+                }}
+                className={cn(
+                  "h-9 px-4 rounded-xl text-sm font-semibold transition-all cursor-pointer",
+                  selectedCategory === cat.id
+                    ? "bg-primary text-white shadow-sm shadow-primary/25"
+                    : "border border-border hover:bg-muted",
                 )}
-                <div className="flex items-center gap-1.5 bg-secondary px-3 py-1.5 rounded-full text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span className="font-medium text-sm">{meal.prepTime} min</span>
-                </div>
-              </div>
-
-              <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
-                {meal.description}
-              </p>
-
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-black text-primary">৳{meal.price}</span>
-                <span className="text-sm text-muted-foreground mb-1">per serving</span>
-              </div>
-
-              {/* Provider */}
-              <Link
-                href={`/providers/${meal.provider.id}`}
-                className="group flex items-center gap-3 p-4 bg-secondary hover:bg-muted rounded-2xl transition-all border border-transparent hover:border-primary/20"
               >
-                <div className="relative h-12 w-12 rounded-xl overflow-hidden shrink-0 bg-primary/10">
-                  {meal.provider.logo ? (
-                    <Image
-                      src={meal.provider.logo}
-                      alt={meal.provider.shopName}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center">
-                      <Store className="h-6 w-6 text-primary" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate group-hover:text-primary transition-colors">
-                    {meal.provider.shopName}
-                  </p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <MapPin className="h-3 w-3" />
-                    {meal.provider.city}
-                  </div>
-                </div>
-                <Badge className={cn("shrink-0 border-0 font-semibold", meal.provider.isOpen ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600")}>
-                  {meal.provider.isOpen ? "Open" : "Closed"}
-                </Badge>
-              </Link>
-
-              {/* Quantity + Buttons */}
-              {meal.isAvailable && meal.provider.isOpen && (
-                <div className="flex flex-col gap-4">
-                  {/* Quantity */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">Quantity</span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        className="h-9 w-9 rounded-xl border border-border hover:border-primary hover:text-primary flex items-center justify-center transition-all cursor-pointer"
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="w-8 text-center font-extrabold text-lg">{quantity}</span>
-                      <button
-                        onClick={() => setQuantity((q) => q + 1)}
-                        className="h-9 w-9 rounded-xl border border-border hover:border-primary hover:text-primary flex items-center justify-center transition-all cursor-pointer"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Total */}
-                  <div className="flex items-center justify-between py-3 px-4 bg-secondary rounded-xl">
-                    <span className="text-sm text-muted-foreground">Total Amount</span>
-                    <span className="text-xl font-black text-primary">৳{(meal.price * quantity).toFixed(0)}</span>
-                  </div>
-
-                  {/* Buttons — Fixed Row */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={handleDirectOrder}
-                      disabled={addToCartMutation.isPending}
-                      className="flex-1 h-12 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl cursor-pointer shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all gap-2"
-                    >
-                      <Zap className="h-4 w-4 shrink-0" />
-                      <span>Order Now</span>
-                    </Button>
-
-                    <Button
-                      onClick={handleAddToCart}
-                      disabled={addToCartMutation.isPending}
-                      variant="outline"
-                      className="flex-1 h-12 border-primary text-primary hover:bg-primary hover:text-white font-bold rounded-xl cursor-pointer transition-all gap-2"
-                    >
-                      {addToCartMutation.isPending ? (
-                        <>
-                          <span className="h-4 w-4 border-2 border-current/30 border-t-current rounded-full animate-spin shrink-0" />
-                          <span>Adding...</span>
-                        </>
-                      ) : addToCartMutation.isSuccess ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 shrink-0" />
-                          <span>Added!</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="h-4 w-4 shrink-0" />
-                          <span>Add to Cart</span>
-                        </>
-                      )}
-                    </Button>
-
-                    <button
-                      onClick={handleWishlist}
-                      className={cn(
-                        "h-12 w-12 rounded-xl border flex items-center justify-center shrink-0 transition-all cursor-pointer",
-                        isWishlisted
-                          ? "bg-red-500/10 border-red-500/30 text-red-500 hover:bg-red-500/20"
-                          : "border-border hover:border-red-400 hover:text-red-400"
-                      )}
-                    >
-                      <Heart className={cn("h-5 w-5 transition-all", isWishlisted ? "fill-red-500 text-red-500" : "")} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                {cat.name}
+              </button>
+            ))}
           </div>
 
-          {/* Reviews */}
-          <div className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <h2 className="text-xl font-extrabold">Reviews</h2>
-              {meal.totalReviews > 0 && (
-                <Badge className="bg-primary/10 text-primary border-0 font-bold">
-                  {meal.totalReviews}
-                </Badge>
-              )}
+          {/* Meals Grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
-
-            {/* Write Review — Customer only */}
-            {isAuthenticated && user?.role === "CUSTOMER" && (
-              <div className="bg-card border border-border rounded-2xl p-5 mb-6 flex flex-col gap-4">
-                <h3 className="font-bold text-sm">Write a Review</h3>
-
-                {/* Star Rating */}
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setReviewRating(star)}
-                      onMouseEnter={() => setHoveredStar(star)}
-                      onMouseLeave={() => setHoveredStar(0)}
-                      className="cursor-pointer transition-transform hover:scale-110"
-                    >
-                      <Star
-                        className={cn(
-                          "h-7 w-7 transition-colors",
-                          star <= (hoveredStar || reviewRating)
-                            ? "fill-accent text-accent"
-                            : "text-border"
-                        )}
-                      />
-                    </button>
-                  ))}
-                  <span className="ml-2 text-sm text-muted-foreground font-medium">
-                    {reviewRating === 1 ? "Poor" :
-                     reviewRating === 2 ? "Fair" :
-                     reviewRating === 3 ? "Good" :
-                     reviewRating === 4 ? "Very Good" : "Excellent"}
-                  </span>
-                </div>
-
-                {/* Comment */}
-                <Textarea
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  placeholder="Share your experience with this meal..."
-                  className="resize-none rounded-xl min-h-[80px] text-sm"
-                />
-
-                <Button
-                  onClick={handleReviewSubmit}
-                  disabled={reviewMutation.isPending || !reviewComment.trim()}
-                  className="w-full sm:w-auto sm:self-end h-10 bg-primary hover:bg-primary-hover text-white rounded-xl cursor-pointer gap-2 font-semibold"
+          ) : meals.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+              <div className="h-20 w-20 rounded-3xl bg-muted flex items-center justify-center">
+                <UtensilsCrossed className="h-10 w-10 text-muted-foreground/40" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">No meals found</h3>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Try a different search or category
+                </p>
+              </div>
+              {(search || selectedCategory) && (
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setDebouncedSearch("");
+                    setSelectedCategory("");
+                    setPage(1);
+                  }}
+                  className="h-9 px-5 rounded-xl bg-primary text-white text-sm font-semibold hover:brightness-110 transition-all cursor-pointer"
                 >
-                  {reviewMutation.isPending ? (
-                    <>
-                      <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      Submit Review
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              {meals.map((meal) => (
+                <MealCard key={meal.id} meal={meal} />
+              ))}
+            </div>
+          )}
 
-            {/* Reviews Grid */}
-            {meal.reviews && meal.reviews.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {meal.reviews.map((review: Review) => (
-                  <div
-                    key={review.id}
-                    className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3 hover:border-primary/20 hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-extrabold text-sm shrink-0">
-                        {review.customer.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{review.customer.name}</p>
-                        <div className="flex items-center gap-0.5 mt-0.5">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={cn("h-3 w-3", i < review.rating ? "fill-accent text-accent" : "text-border")} />
-                          ))}
-                        </div>
-                      </div>
-                      {review.sentiment && (
-                        <Badge className={cn("text-xs border-0 shrink-0",
-                          review.sentiment === "positive" ? "bg-green-500/10 text-green-600" :
-                          review.sentiment === "negative" ? "bg-red-500/10 text-red-600" :
-                          "bg-gray-500/10 text-gray-600"
-                        )}>
-                          {review.sentiment}
-                        </Badge>
+          {/* Pagination */}
+          {meta && meta.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-10">
+              <p className="text-sm text-muted-foreground">
+                Page {page} of {meta.totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="h-9 w-9 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                {Array.from({ length: meta.totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 ||
+                      p === meta.totalPages ||
+                      Math.abs(p - page) <= 1,
+                  )
+                  .map((p, i, arr) => (
+                    <>
+                      {i > 0 && arr[i - 1] !== p - 1 && (
+                        <span
+                          key={`dot-${p}`}
+                          className="text-muted-foreground px-1"
+                        >
+                          ...
+                        </span>
                       )}
-                    </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {review.comment}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 bg-card border border-border rounded-2xl">
-                <Star className="h-10 w-10 mx-auto mb-3 text-muted-foreground/20" />
-                <p className="font-semibold mb-1">No reviews yet</p>
-                <p className="text-sm text-muted-foreground">Be the first to review this meal</p>
-              </div>
-            )}
-          </div>
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={cn(
+                          "h-9 w-9 rounded-xl text-sm font-semibold transition-all cursor-pointer",
+                          page === p
+                            ? "bg-primary text-white shadow-sm shadow-primary/25"
+                            : "border border-border hover:bg-muted",
+                        )}
+                      >
+                        {p}
+                      </button>
+                    </>
+                  ))}
 
-          {/* Related Meals */}
-          {relatedMeals && relatedMeals.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-xl font-extrabold mb-6">You Might Also Like</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                {relatedMeals.slice(0, 4).map((m) => (
-                  <MealCard key={m.id} meal={m} />
-                ))}
+                <button
+                  onClick={() =>
+                    setPage((p) => Math.min(meta.totalPages, p + 1))
+                  }
+                  disabled={page === meta.totalPages}
+                  className="h-9 w-9 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
           )}

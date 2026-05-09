@@ -38,12 +38,12 @@ export function Footer() {
               <Image
                 src="/logo.png"
                 alt="MeowMeal"
-                width={44}
-                height={44}
+                width={100}
+                height={100}
                 className="rounded-xl"
               />
               <span className="font-black text-2xl text-primary tracking-tight">
-                meowmeal
+                MeowMeal
               </span>
             </Link>
             <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-xs">

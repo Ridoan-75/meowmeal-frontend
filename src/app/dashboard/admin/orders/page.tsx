@@ -1,15 +1,9 @@
 "use client";
 
+import { CustomSelect } from "@/components/common/CustomSelect";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, ChevronRight, Package, ChevronDown } from "lucide-react";
 import api from "@/lib/axios";
@@ -50,47 +44,21 @@ export default function AdminOrdersPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">All Orders</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {meta?.total
-              ? `${meta.total} total orders`
-              : "Monitor all platform orders"}
-          </p>
-        </div>
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 min-w-[160px] appearance-none rounded-xl border border-white/10 bg-primary px-3 pr-10 text-sm font-medium text-white shadow-md outline-none transition-all hover:brightness-110 focus:ring-2 focus:ring-white/20 cursor-pointer"
-          >
-            <option className="bg-zinc-900 text-white hover:bg-orange-500" value="ALL">
-              All Orders
-            </option>
-            <option className="bg-zinc-900 text-white hover:bg-orange-500" value="PLACED">
-              Placed
-            </option>
-            <option className="bg-zinc-900 text-white hover:bg-orange-500" value="PREPARING">
-              Preparing
-            </option>
-            <option className="bg-zinc-900 text-white hover:bg-orange-500" value="READY">
-              Ready
-            </option>
-            <option className="bg-zinc-900 text-white hover:bg-orange-500" value="DELIVERED">
-              Delivered
-            </option>
-            <option className="bg-zinc-900 text-white hover:bg-orange-500" value="CANCELLED">
-              Cancelled
-            </option>
-          </select>
-
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/80" />
-        </div>
-      </div>
+      <CustomSelect
+        value={statusFilter}
+        onChange={(val) => {
+          setStatusFilter(val);
+          setPage(1);
+        }}
+        options={[
+          { value: "ALL", label: "All Orders" },
+          { value: "PLACED", label: "Placed" },
+          { value: "PREPARING", label: "Preparing" },
+          { value: "READY", label: "Ready" },
+          { value: "DELIVERED", label: "Delivered" },
+          { value: "CANCELLED", label: "Cancelled" },
+        ]}
+      />
 
       {/* Status Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">

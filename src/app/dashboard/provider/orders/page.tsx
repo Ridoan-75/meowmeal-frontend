@@ -1,5 +1,6 @@
 "use client";
 
+import { CustomSelect } from "@/components/common/CustomSelect";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
@@ -128,23 +129,17 @@ export default function ProviderOrdersPage() {
         </div>
 
         {/* Status Filter */}
-        <div className="relative">
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="h-9 pl-3 pr-9 rounded-xl border border-border bg-background text-foreground text-sm font-semibold cursor-pointer transition-all appearance-none outline-none hover:bg-muted"
-          >
-            {statuses.map((s) => (
-              <option key={s} value={s}>
-                {s === "ALL" ? "All Orders" : statusConfig[s]?.label || s}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white pointer-events-none" />
-        </div>
+        <CustomSelect
+          value={statusFilter}
+          onChange={(val) => {
+            setStatusFilter(val);
+            setPage(1);
+          }}
+          options={statuses.map((s) => ({
+            value: s,
+            label: s === "ALL" ? "All Orders" : statusConfig[s]?.label || s,
+          }))}
+        />
       </div>
 
       {/* Status Tabs */}

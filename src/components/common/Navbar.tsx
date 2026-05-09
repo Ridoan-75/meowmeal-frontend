@@ -42,7 +42,7 @@ const navLinks = [
 ];
 
 export function Navbar() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { totalItems } = useCartStore();
   const { count: wishlistCount } = useWishlistStore();
   const router = useRouter();
@@ -72,22 +72,21 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-20 lg:h-24 gap-5">
-
           {/* Logo */}
-          <Link href="/" className="flex items-center shrink-0">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
             <Image
               src="/logo.png"
               alt="MeowMeal"
               width={100}
               height={100}
-              className="rounded-2xl"
+              className="rounded-xl"
             />
             <span className="font-black text-xl text-primary hidden sm:block tracking-tight">
-              meowmeal
+              MeowMeal
             </span>
           </Link>
 
-          {/* Desktop Nav — Middle */}
+          {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
             {navLinks.map((link) => (
               <Link
@@ -97,14 +96,14 @@ export function Navbar() {
                   "relative px-5 py-3 text-[15px] font-semibold transition-all duration-300",
                   isActive(link.href)
                     ? "text-primary"
-                    : "text-foreground/70 hover:text-primary"
+                    : "text-foreground/70 hover:text-primary",
                 )}
               >
                 {link.label}
                 <span
                   className={cn(
                     "absolute left-0 bottom-0 h-[2px] rounded-full bg-primary transition-all duration-300",
-                    isActive(link.href) ? "w-full" : "w-0"
+                    isActive(link.href) ? "w-full" : "w-0",
                   )}
                 />
               </Link>
@@ -113,13 +112,21 @@ export function Navbar() {
 
           {/* Right Side */}
           <div className="flex items-center gap-2 ml-auto">
-
             {/* Dark Mode */}
             <div className="flex items-center justify-center h-12 w-12 rounded-2xl border border-border bg-background shadow-sm cursor-pointer">
               <ThemeToggle />
             </div>
 
-            {isAuthenticated ? (
+            {/* Auth Loading Skeleton */}
+            {isLoading && (
+              <div className="hidden md:flex items-center gap-2">
+                <div className="h-10 w-20 rounded-2xl bg-muted animate-pulse" />
+                <div className="h-10 w-20 rounded-2xl bg-muted animate-pulse" />
+              </div>
+            )}
+
+            {/* Authenticated */}
+            {!isLoading && isAuthenticated && (
               <>
                 <NotificationBell />
 
@@ -172,7 +179,10 @@ export function Navbar() {
                       <ChevronDown className="hidden sm:block h-4 w-4 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-60 rounded-2xl p-2">
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-60 rounded-2xl p-2"
+                  >
                     <DropdownMenuLabel>
                       <div className="flex flex-col gap-1">
                         <p className="font-semibold">{user?.name}</p>
@@ -186,20 +196,29 @@ export function Navbar() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href={getDashboardLink()} className="cursor-pointer rounded-lg">
+                      <Link
+                        href={getDashboardLink()}
+                        className="cursor-pointer rounded-lg"
+                      >
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`${getDashboardLink()}/profile`} className="cursor-pointer rounded-lg">
+                      <Link
+                        href={`${getDashboardLink()}/profile`}
+                        className="cursor-pointer rounded-lg"
+                      >
                         <User className="mr-2 h-4 w-4" />
                         Profile
                       </Link>
                     </DropdownMenuItem>
                     {user?.role === "CUSTOMER" && (
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard/customer/orders" className="cursor-pointer rounded-lg">
+                        <Link
+                          href="/dashboard/customer/orders"
+                          className="cursor-pointer rounded-lg"
+                        >
                           <UtensilsCrossed className="mr-2 h-4 w-4" />
                           My Orders
                         </Link>
@@ -216,7 +235,10 @@ export function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
-            ) : (
+            )}
+
+            {/* Not Authenticated */}
+            {!isLoading && !isAuthenticated && (
               <div className="hidden md:flex items-center gap-2">
                 <Link href="/login">
                   <Button
@@ -241,19 +263,19 @@ export function Navbar() {
                   <span
                     className={cn(
                       "block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300",
-                      mobileOpen ? "rotate-45 translate-y-2" : ""
+                      mobileOpen ? "rotate-45 translate-y-2" : "",
                     )}
                   />
                   <span
                     className={cn(
                       "block h-0.5 bg-foreground rounded-full transition-all duration-300",
-                      mobileOpen ? "opacity-0 w-0" : "w-4"
+                      mobileOpen ? "opacity-0 w-0" : "w-4",
                     )}
                   />
                   <span
                     className={cn(
                       "block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300",
-                      mobileOpen ? "-rotate-45 -translate-y-2" : ""
+                      mobileOpen ? "-rotate-45 -translate-y-2" : "",
                     )}
                   />
                 </button>
@@ -261,8 +283,7 @@ export function Navbar() {
 
               <SheetContent side="right" className="w-80 p-0 [&>button]:hidden">
                 <div className="flex flex-col h-full">
-
-                  {/* Mobile Header — Logo with Background */}
+                  {/* Mobile Header */}
                   <div className="relative overflow-hidden border-b border-border">
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-accent/10" />
                     <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-primary/20 blur-2xl" />
@@ -272,14 +293,14 @@ export function Navbar() {
                         <Image
                           src="/logo.png"
                           alt="MeowMeal"
-                          width={64}
-                          height={64}
+                          width={100}
+                          height={100}
                           className="object-cover"
                         />
                       </div>
                       <div className="text-center">
                         <p className="font-black text-xl text-primary tracking-tight">
-                          meowmeal
+                          MeowMeal
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           Delicious food delivered fast
@@ -299,7 +320,7 @@ export function Navbar() {
                           "relative flex items-center px-5 py-4 text-sm font-semibold rounded-xl transition-all duration-300",
                           isActive(link.href)
                             ? "text-primary bg-primary/5"
-                            : "text-foreground/70 hover:text-primary hover:bg-muted"
+                            : "text-foreground/70 hover:text-primary hover:bg-muted",
                         )}
                       >
                         {link.label}
@@ -308,7 +329,7 @@ export function Navbar() {
                         )}
                       </Link>
                     ))}
-                    {isAuthenticated && (
+                    {!isLoading && isAuthenticated && (
                       <Link
                         href={getDashboardLink()}
                         onClick={() => setMobileOpen(false)}
@@ -316,7 +337,7 @@ export function Navbar() {
                           "relative flex items-center px-5 py-4 text-sm font-semibold rounded-xl transition-all duration-300",
                           isActive(getDashboardLink())
                             ? "text-primary bg-primary/5"
-                            : "text-foreground/70 hover:text-primary hover:bg-muted"
+                            : "text-foreground/70 hover:text-primary hover:bg-muted",
                         )}
                       >
                         Dashboard
@@ -327,14 +348,20 @@ export function Navbar() {
                     )}
                   </nav>
 
-                  {!isAuthenticated && (
+                  {!isLoading && !isAuthenticated && (
                     <div className="mt-auto p-5 border-t border-border flex flex-col gap-3">
                       <Link href="/login" onClick={() => setMobileOpen(false)}>
-                        <Button variant="outline" className="w-full h-12 rounded-2xl cursor-pointer">
+                        <Button
+                          variant="outline"
+                          className="w-full h-12 rounded-2xl cursor-pointer"
+                        >
                           Sign In
                         </Button>
                       </Link>
-                      <Link href="/register" onClick={() => setMobileOpen(false)}>
+                      <Link
+                        href="/register"
+                        onClick={() => setMobileOpen(false)}
+                      >
                         <Button className="w-full h-12 rounded-2xl bg-primary hover:bg-primary-hover text-white cursor-pointer">
                           Sign Up
                         </Button>
@@ -342,7 +369,7 @@ export function Navbar() {
                     </div>
                   )}
 
-                  {isAuthenticated && (
+                  {!isLoading && isAuthenticated && (
                     <div className="mt-auto p-5 border-t border-border">
                       <Button
                         variant="outline"
