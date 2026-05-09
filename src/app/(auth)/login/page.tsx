@@ -60,6 +60,11 @@ export default function LoginPage() {
         localStorage.setItem("meowmeal_token", res.data.token);
       }
 
+      // user id save করো
+      if (res.data?.user?.id) {
+        localStorage.setItem("meowmeal_user_id", res.data.user.id);
+      }
+
       toast.success("Welcome back!");
 
       // Redirect to dashboard (role will be determined by backend)

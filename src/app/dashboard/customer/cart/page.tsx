@@ -46,21 +46,92 @@ export default function CartPage() {
       setCart(cartData);
       return cartData;
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ itemId, quantity }: { itemId: string; quantity: number }) => {
+    mutationFn: async ({
+      itemId,
+      quantity,
+    }: {
+      itemId: string;
+      quantity: number;
+    }) => {
       await api.patch(`/cart/${itemId}`, { quantity });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["cart"] }),
+    onMutate: async ({ itemId, quantity }) => {
+      await queryClient.cancelQueries({ queryKey: ["cart"] });
+      const previous = queryClient.getQueryData<Cart>(["cart"]);
+
+      queryClient.setQueryData(["cart"], (old: Cart | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.map((item) =>
+            item.id === itemId ? { ...item, quantity } : item,
+          ),
+          totalItems: old.items.reduce(
+            (sum: number, item) =>
+              sum + (item.id === itemId ? quantity : item.quantity),
+            0,
+          ),
+          totalAmount: old.items.reduce(
+            (sum: number, item) =>
+              sum +
+              (item.id === itemId ? quantity : item.quantity) * item.meal.price,
+            0,
+          ),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_, __, context?: { previous: Cart | undefined }) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["cart"], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
   });
 
   const removeMutation = useMutation({
     mutationFn: async (itemId: string) => {
       await api.delete(`/cart/${itemId}`);
     },
+    onMutate: async (itemId) => {
+      await queryClient.cancelQueries({ queryKey: ["cart"] });
+      const previous = queryClient.getQueryData<Cart>(["cart"]);
+
+      queryClient.setQueryData(["cart"], (old: Cart | undefined) => {
+        if (!old) return old;
+        const newItems = old.items.filter((item) => item.id !== itemId);
+        return {
+          ...old,
+          items: newItems,
+          totalItems: newItems.reduce(
+            (sum: number, item) => sum + item.quantity,
+            0,
+          ),
+          totalAmount: newItems.reduce(
+            (sum: number, item) => sum + item.quantity * item.meal.price,
+            0,
+          ),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_, __, context?: { previous: Cart | undefined }) => {
+      if (context?.previous)
+        queryClient.setQueryData(["cart"], context.previous);
+    },
     onSuccess: () => {
       toast.success("Item removed", { duration: 2000 });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
@@ -69,9 +140,31 @@ export default function CartPage() {
     mutationFn: async () => {
       await api.delete("/cart");
     },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["cart"] });
+      const previous = queryClient.getQueryData<Cart>(["cart"]);
+
+      queryClient.setQueryData(["cart"], (old: Cart | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: [],
+          totalItems: 0,
+          totalAmount: 0,
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_, __, context?: { previous: Cart | undefined }) => {
+      if (context?.previous)
+        queryClient.setQueryData(["cart"], context.previous);
+    },
     onSuccess: () => {
       toast.success("Cart cleared", { duration: 2000 });
       setClearConfirm(false);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
@@ -92,11 +185,25 @@ export default function CartPage() {
       });
     },
     onSuccess: () => {
+      // Optimistically clear cart immediately
+      queryClient.setQueryData(["cart"], (old: Cart | undefined) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: [],
+          totalItems: 0,
+          totalAmount: 0,
+        };
+      });
+
       toast.success("Order placed successfully!", { duration: 2000 });
       setCheckoutOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["cart"] });
-      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
       router.push("/dashboard/customer/orders");
+
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      }, 500);
     },
     onError: () => toast.error("Failed to place order. Please try again."),
   });
@@ -112,7 +219,7 @@ export default function CartPage() {
     );
   }
 
-  if (!cart || cart.items.length === 0) {
+  if (!isLoading && (!cart || cart.items.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
         <div className="h-20 w-20 rounded-3xl bg-muted flex items-center justify-center">
@@ -135,9 +242,12 @@ export default function CartPage() {
     );
   }
 
+  if (!cart) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-6">
-
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -157,18 +267,20 @@ export default function CartPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* Cart Items */}
         <div className="lg:col-span-2 flex flex-col gap-3">
-
           {/* Provider Info */}
           <div className="bg-card border border-border rounded-2xl px-4 py-3 flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <Store className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-bold">{cart.items[0]?.meal.provider.shopName}</p>
-              <p className="text-xs text-muted-foreground">All items from this restaurant</p>
+              <p className="text-sm font-bold">
+                {cart.items[0]?.meal.provider.shopName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                All items from this restaurant
+              </p>
             </div>
           </div>
 
@@ -180,7 +292,10 @@ export default function CartPage() {
               {/* Image */}
               <div className="relative h-16 w-16 rounded-xl overflow-hidden shrink-0 bg-secondary">
                 <Image
-                  src={item.meal.images[0] || "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200"}
+                  src={
+                    item.meal.images[0] ||
+                    "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200"
+                  }
                   alt={item.meal.title}
                   fill
                   className="object-cover"
@@ -190,8 +305,12 @@ export default function CartPage() {
               {/* Details */}
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm truncate">{item.meal.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{item.meal.provider.shopName}</p>
-                <p className="text-sm font-extrabold text-primary mt-1">৳{item.meal.price}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {item.meal.provider.shopName}
+                </p>
+                <p className="text-sm font-extrabold text-primary mt-1">
+                  ৳{item.meal.price}
+                </p>
               </div>
 
               {/* Quantity */}
@@ -199,16 +318,26 @@ export default function CartPage() {
                 <button
                   onClick={() =>
                     item.quantity > 1
-                      ? updateMutation.mutate({ itemId: item.id, quantity: item.quantity - 1 })
+                      ? updateMutation.mutate({
+                          itemId: item.id,
+                          quantity: item.quantity - 1,
+                        })
                       : removeMutation.mutate(item.id)
                   }
                   className="h-8 w-8 rounded-xl border border-border flex items-center justify-center hover:bg-muted hover:border-primary/30 transition-all cursor-pointer"
                 >
                   <Minus className="h-3.5 w-3.5" />
                 </button>
-                <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
+                <span className="w-6 text-center text-sm font-bold">
+                  {item.quantity}
+                </span>
                 <button
-                  onClick={() => updateMutation.mutate({ itemId: item.id, quantity: item.quantity + 1 })}
+                  onClick={() =>
+                    updateMutation.mutate({
+                      itemId: item.id,
+                      quantity: item.quantity + 1,
+                    })
+                  }
                   className="h-8 w-8 rounded-xl border border-border flex items-center justify-center hover:bg-muted hover:border-primary/30 transition-all cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -217,7 +346,9 @@ export default function CartPage() {
 
               {/* Subtotal + Remove */}
               <div className="text-right shrink-0">
-                <p className="text-sm font-extrabold">৳{(item.meal.price * item.quantity).toFixed(0)}</p>
+                <p className="text-sm font-extrabold">
+                  ৳{(item.meal.price * item.quantity).toFixed(0)}
+                </p>
                 <button
                   onClick={() => removeMutation.mutate(item.id)}
                   className="text-xs text-destructive hover:underline mt-1 cursor-pointer"
@@ -236,7 +367,10 @@ export default function CartPage() {
 
             <div className="flex flex-col gap-2">
               {cart.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm gap-2">
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between text-sm gap-2"
+                >
                   <span className="text-muted-foreground truncate flex-1">
                     {item.meal.title} ×{item.quantity}
                   </span>
@@ -260,7 +394,7 @@ export default function CartPage() {
                 "w-full h-11 rounded-xl text-sm font-semibold text-white transition-all cursor-pointer",
                 "bg-primary hover:brightness-110 active:scale-[0.98]",
                 "shadow-[0_2px_8px_rgba(0,0,0,0.15)]",
-                "flex items-center justify-center gap-2"
+                "flex items-center justify-center gap-2",
               )}
             >
               Proceed to Checkout
@@ -275,7 +409,9 @@ export default function CartPage() {
             </div>
             <div>
               <p className="text-sm font-semibold">Cash on Delivery</p>
-              <p className="text-xs text-muted-foreground">Pay when you receive</p>
+              <p className="text-xs text-muted-foreground">
+                Pay when you receive
+              </p>
             </div>
           </div>
         </div>
@@ -284,7 +420,10 @@ export default function CartPage() {
       {/* Checkout Modal */}
       {checkoutOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCheckoutOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setCheckoutOpen(false)}
+          />
           <div className="relative bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md p-6 flex flex-col gap-5">
             <h2 className="text-lg font-bold">Confirm Your Order</h2>
 
@@ -317,7 +456,9 @@ export default function CartPage() {
                 <Label className="font-semibold flex items-center gap-1.5">
                   <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                   Note
-                  <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    (optional)
+                  </span>
                 </Label>
                 <Textarea
                   value={note}
@@ -332,7 +473,10 @@ export default function CartPage() {
             {/* Order Items */}
             <div className="bg-secondary rounded-xl p-3 flex flex-col gap-2">
               {cart.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between text-sm"
+                >
                   <span className="text-muted-foreground truncate flex-1">
                     {item.quantity}× {item.meal.title}
                   </span>
@@ -343,7 +487,9 @@ export default function CartPage() {
               ))}
               <div className="border-t border-border pt-2 flex items-center justify-between font-bold">
                 <span>Total</span>
-                <span className="text-primary">৳{cart.totalAmount.toFixed(0)}</span>
+                <span className="text-primary">
+                  ৳{cart.totalAmount.toFixed(0)}
+                </span>
               </div>
             </div>
 
@@ -357,12 +503,17 @@ export default function CartPage() {
               </button>
               <button
                 onClick={() => orderMutation.mutate()}
-                disabled={orderMutation.isPending || !address.trim() || !city.trim()}
+                disabled={
+                  orderMutation.isPending || !address.trim() || !city.trim()
+                }
                 className={cn(
                   "flex-1 h-11 rounded-xl text-sm font-semibold text-white transition-all cursor-pointer",
                   "bg-primary hover:brightness-110 active:scale-[0.98]",
                   "flex items-center justify-center gap-2",
-                  (orderMutation.isPending || !address.trim() || !city.trim()) && "opacity-60 cursor-not-allowed"
+                  (orderMutation.isPending ||
+                    !address.trim() ||
+                    !city.trim()) &&
+                    "opacity-60 cursor-not-allowed",
                 )}
               >
                 {orderMutation.isPending ? (
@@ -371,7 +522,7 @@ export default function CartPage() {
                     Placing...
                   </>
                 ) : (
-                  <>Place Order 💵</>
+                  <>Place Order</>
                 )}
               </button>
             </div>
