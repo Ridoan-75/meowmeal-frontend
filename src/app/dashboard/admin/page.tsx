@@ -7,10 +7,10 @@ import {
   ShoppingBag,
   UtensilsCrossed,
   DollarSign,
-  TrendingUp,
   Mail,
+  TrendingUp,
+  ArrowUpRight,
 } from "lucide-react";
-import { StatsCard } from "@/components/dashboard/StatsCard";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -29,24 +29,31 @@ import {
   Legend,
 } from "recharts";
 import api from "@/lib/axios";
-import {
-  OrderStatus,
-  TopMeal,
-  NewsletterSubscriber,
-  RecentOrder,
-} from "@/types";
+import { OrderStatus, TopMeal, NewsletterSubscriber, RecentOrder } from "@/types";
+import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
-const statusColor: Record<string, string> = {
-  PLACED: "bg-blue-500/10 text-blue-600",
-  PREPARING: "bg-yellow-500/10 text-yellow-600",
-  READY: "bg-purple-500/10 text-purple-600",
-  DELIVERED: "bg-green-500/10 text-green-600",
-  CANCELLED: "bg-red-500/10 text-red-600",
+const statusConfig: Record<string, { color: string; label: string }> = {
+  PLACED: { color: "bg-blue-500/10 text-blue-600", label: "Placed" },
+  PREPARING: { color: "bg-yellow-500/10 text-yellow-600", label: "Preparing" },
+  READY: { color: "bg-purple-500/10 text-purple-600", label: "Ready" },
+  DELIVERED: { color: "bg-green-500/10 text-green-600", label: "Delivered" },
+  CANCELLED: { color: "bg-red-500/10 text-red-600", label: "Cancelled" },
 };
 
 const PIE_COLORS = ["#3B82F6", "#FFB800", "#A855F7", "#22C55E", "#EF4444"];
 
+const statsConfig = [
+  { key: "totalUsers", label: "Total Users", icon: Users, color: "bg-blue-500/10 text-blue-500", prefix: "" },
+  { key: "totalProviders", label: "Restaurants", icon: Store, color: "bg-primary/10 text-primary", prefix: "" },
+  { key: "totalOrders", label: "Total Orders", icon: ShoppingBag, color: "bg-yellow-500/10 text-yellow-500", prefix: "" },
+  { key: "totalMeals", label: "Total Meals", icon: UtensilsCrossed, color: "bg-green-500/10 text-green-500", prefix: "" },
+  { key: "totalRevenue", label: "Total Revenue", icon: DollarSign, color: "bg-purple-500/10 text-purple-500", prefix: "৳" },
+];
+
 export default function AdminDashboardPage() {
+  const router = useRouter();
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin-dashboard"],
     queryFn: async () => {
@@ -65,99 +72,89 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
+
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Platform overview and analytics
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Platform overview and analytics
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-3 py-2 rounded-xl">
+          <TrendingUp className="h-3.5 w-3.5 text-primary" />
+          Live Data
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
+            <Skeleton key={i} className="h-28 rounded-2xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatsCard
-            title="Total Users"
-            value={stats?.overview?.totalUsers || 0}
-            icon={Users}
-            color="blue"
-          />
-          <StatsCard
-            title="Restaurants"
-            value={stats?.overview?.totalProviders || 0}
-            icon={Store}
-            color="primary"
-          />
-          <StatsCard
-            title="Total Orders"
-            value={stats?.overview?.totalOrders || 0}
-            icon={ShoppingBag}
-            color="yellow"
-          />
-          <StatsCard
-            title="Total Meals"
-            value={stats?.overview?.totalMeals || 0}
-            icon={UtensilsCrossed}
-            color="green"
-          />
-          <StatsCard
-            title="Total Revenue"
-            value={`৳${stats?.overview?.totalRevenue || 0}`}
-            icon={DollarSign}
-            color="primary"
-          />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {statsConfig.map((stat) => (
+            <div
+              key={stat.key}
+              className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md hover:shadow-black/5 dark:hover:shadow-black/20 hover:-translate-y-0.5 transition-all"
+            >
+              <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center", stat.color)}>
+                <stat.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-extrabold">
+                  {stat.prefix}{stats?.overview?.[stat.key]?.toLocaleString() || 0}
+                </p>
+                <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                  {stat.label}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Monthly Revenue Bar Chart */}
+
+        {/* Monthly Revenue */}
         <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6">
-          <h2 className="font-semibold mb-6">Monthly Revenue</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-bold">Monthly Revenue</h2>
+            <span className="text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+              Last 6 months
+            </span>
+          </div>
           {isLoading ? (
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-52 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stats?.monthlyRevenue || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 11 }}
-                  stroke="var(--muted-foreground)"
-                />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  stroke="var(--muted-foreground)"
-                />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
                 <Tooltip
                   contentStyle={{
                     background: "var(--card)",
                     border: "1px solid var(--border)",
                     borderRadius: "12px",
+                    fontSize: "12px",
                   }}
                 />
-                <Bar
-                  dataKey="revenue"
-                  fill="#FF6B35"
-                  radius={[6, 6, 0, 0]}
-                  name="Revenue (৳)"
-                />
+                <Bar dataKey="revenue" fill="#FF6B35" radius={[6, 6, 0, 0]} name="Revenue (৳)" />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
 
-        {/* Orders by Status Pie Chart */}
+        {/* Orders by Status Pie */}
         <div className="bg-card border border-border rounded-2xl p-6">
-          <h2 className="font-semibold mb-6">Orders by Status</h2>
+          <h2 className="font-bold mb-6">Orders by Status</h2>
           {isLoading ? (
-            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-52 w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
@@ -169,27 +166,19 @@ export default function AdminDashboardPage() {
                   cy="50%"
                   outerRadius={70}
                 >
-                  {(stats?.ordersByStatus || []).map(
-                    (_: OrderStatus, index: number) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={PIE_COLORS[index % PIE_COLORS.length]}
-                      />
-                    ),
-                  )}
+                  {(stats?.ordersByStatus || []).map((_: OrderStatus, index: number) => (
+                    <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                  ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
                     background: "var(--card)",
                     border: "1px solid var(--border)",
                     borderRadius: "12px",
+                    fontSize: "12px",
                   }}
                 />
-                <Legend
-                  formatter={(value) => (
-                    <span className="text-xs">{value}</span>
-                  )}
-                />
+                <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -198,31 +187,33 @@ export default function AdminDashboardPage() {
 
       {/* Monthly Orders Line Chart */}
       <div className="bg-card border border-border rounded-2xl p-6">
-        <h2 className="font-semibold mb-6">Monthly Orders</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-bold">Monthly Orders</h2>
+          <span className="text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
+            Last 6 months
+          </span>
+        </div>
         {isLoading ? (
-          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-52 w-full" />
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={stats?.monthlyOrders || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 11 }}
-                stroke="var(--muted-foreground)"
-              />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
               <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
               <Tooltip
                 contentStyle={{
                   background: "var(--card)",
                   border: "1px solid var(--border)",
                   borderRadius: "12px",
+                  fontSize: "12px",
                 }}
               />
               <Line
                 type="monotone"
                 dataKey="count"
                 stroke="#FF6B35"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 dot={{ fill: "#FF6B35", r: 4 }}
                 name="Orders"
               />
@@ -231,165 +222,136 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
-      {/* Top Meals */}
-      {stats?.topMeals && stats.topMeals.length > 0 && (
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Top Meals */}
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-border">
-            <h2 className="font-semibold">Top Selling Meals</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="font-bold">Top Selling Meals</h2>
+            <button
+              onClick={() => router.push("/dashboard/admin/orders")}
+              className="flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
+            >
+              View all
+              <ArrowUpRight className="h-3 w-3" />
+            </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Meal
-                  </th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Restaurant
-                  </th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Price
-                  </th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Orders
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.topMeals.map((meal: TopMeal) => (
-                  <tr
-                    key={meal.id}
-                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium">{meal.title}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-muted-foreground">
-                        {meal.provider.shopName}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-semibold text-primary">
-                        ৳{meal.price}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge className="bg-primary/10 text-primary border-0">
-                        {meal.orderCount} orders
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {isLoading ? (
+            <div className="p-6"><Skeleton className="h-40 w-full" /></div>
+          ) : (
+            <div className="divide-y divide-border">
+              {(stats?.topMeals || []).slice(0, 5).map((meal: TopMeal, index: number) => (
+                <div key={meal.id} className="flex items-center gap-4 px-6 py-3 hover:bg-muted/30 transition-colors">
+                  <span className="text-sm font-black text-muted-foreground/40 w-5 shrink-0">
+                    {index + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{meal.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{meal.provider.shopName}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-sm font-extrabold text-primary">৳{meal.price}</span>
+                    <Badge className="bg-primary/10 text-primary border-0 text-[10px] px-1.5">
+                      {meal.orderCount} orders
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+              {(!stats?.topMeals || stats.topMeals.length === 0) && (
+                <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+                  No meal data yet
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Recent Orders */}
+        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <h2 className="font-bold">Recent Orders</h2>
+            <button
+              onClick={() => router.push("/dashboard/admin/orders")}
+              className="flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
+            >
+              View all
+              <ArrowUpRight className="h-3 w-3" />
+            </button>
+          </div>
+          {isLoading ? (
+            <div className="p-6"><Skeleton className="h-40 w-full" /></div>
+          ) : (
+            <div className="divide-y divide-border">
+              {(stats?.recentOrders || []).slice(0, 5).map((order: RecentOrder) => (
+                <div key={order.id} className="flex items-center gap-3 px-6 py-3 hover:bg-muted/30 transition-colors">
+                  <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-black shrink-0">
+                    {order.customer.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{order.customer.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      #{order.id.slice(-8).toUpperCase()}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-sm font-extrabold text-primary">৳{order.totalAmount}</span>
+                    <Badge className={cn("text-[10px] border-0 px-1.5", statusConfig[order.status]?.color)}>
+                      {statusConfig[order.status]?.label || order.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+              {(!stats?.recentOrders || stats.recentOrders.length === 0) && (
+                <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+                  No orders yet
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Newsletter Subscribers */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h2 className="font-semibold">Newsletter Subscribers</h2>
-          <span className="text-xs text-muted-foreground">
-            {subscribers?.meta?.total || 0} total
-          </span>
+          <h2 className="font-bold">Recent Newsletter Subscribers</h2>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full font-medium">
+              {subscribers?.meta?.total || 0} total
+            </span>
+            <button
+              onClick={() => router.push("/dashboard/admin/newsletter")}
+              className="flex items-center gap-1 text-xs text-primary hover:underline font-semibold"
+            >
+              View all
+              <ArrowUpRight className="h-3 w-3" />
+            </button>
+          </div>
         </div>
         <div className="divide-y divide-border">
-          {subscribers?.data?.map((sub: NewsletterSubscriber) => (
-            <div
-              key={sub.id}
-              className="flex items-center justify-between px-6 py-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="h-4 w-4 text-primary" />
+          {subscribers?.data?.length > 0 ? (
+            subscribers.data.map((sub: NewsletterSubscriber) => (
+              <div key={sub.id} className="flex items-center justify-between px-6 py-3 hover:bg-muted/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Mail className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <a href={`mailto:${sub.email}`} className="text-sm hover:text-primary transition-colors font-medium">
+                    {sub.email}
+                  </a>
                 </div>
-                <span className="text-sm">{sub.email}</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(sub.createdAt).toLocaleDateString()}
+                </span>
               </div>
-              <span className="text-xs text-muted-foreground">
-                {new Date(sub.createdAt).toLocaleDateString()}
-              </span>
+            ))
+          ) : (
+            <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+              No subscribers yet
             </div>
-          ))}
+          )}
         </div>
-      </div>
-
-      {/* Recent Orders */}
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-border">
-          <h2 className="font-semibold">Recent Orders</h2>
-        </div>
-        {isLoading ? (
-          <div className="p-6">
-            <Skeleton className="h-40 w-full" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Order ID
-                  </th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Customer
-                  </th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Items
-                  </th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Total
-                  </th>
-                  <th className="text-left text-xs font-medium text-muted-foreground px-6 py-3">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(stats?.recentOrders || []).map((order: RecentOrder) => (
-                  <tr
-                    key={order.id}
-                    className="border-b border-border last:border-0 hover:bg-muted/30"
-                  >
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-mono text-primary">
-                        #{order.id.slice(-8).toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm">{order.customer.name}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-0.5">
-                        {order.items.map((item) => (
-                          <p
-                            key={item.id}
-                            className="text-xs text-muted-foreground"
-                          >
-                            {item.quantity}x {item.meal.title}
-                          </p>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-semibold">
-                        ৳{order.totalAmount}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge
-                        className={`text-xs border-0 ${statusColor[order.status]}`}
-                      >
-                        {order.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );

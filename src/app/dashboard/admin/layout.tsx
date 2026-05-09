@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { DashboardNavbar } from "@/components/dashboard/DashboardNavbar";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { Mail } from "lucide-react";
 import {
   LayoutDashboard,
   Users,
@@ -45,6 +47,10 @@ const adminMenuItems = [
     label: "Profile",
     icon: Users,
   },
+  { href: "/dashboard/admin/newsletter", 
+    label: "Newsletter", 
+    icon: Mail 
+  },
 ];
 
 export default function AdminDashboardLayout({
@@ -54,6 +60,7 @@ export default function AdminDashboardLayout({
 }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -74,12 +81,14 @@ export default function AdminDashboardLayout({
 
   return (
     <div className="min-h-screen bg-secondary/30">
-      <DashboardNavbar />
+      <DashboardNavbar onMenuClick={() => setMobileOpen(true)} />
       <div className="flex">
-        <Sidebar menuItems={adminMenuItems} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
-          {children}
-        </main>
+        <Sidebar
+          menuItems={adminMenuItems}
+          mobileOpen={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+        />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">{children}</main>
       </div>
     </div>
   );

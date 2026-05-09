@@ -14,11 +14,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Home } from "lucide-react";
+import { LogOut, User, Home, Menu } from "lucide-react";
 import { signOut } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
-export function DashboardNavbar() {
+interface DashboardNavbarProps {
+  onMenuClick?: () => void;
+}
+
+export function DashboardNavbar({ onMenuClick }: DashboardNavbarProps) {
   const { user } = useAuth();
   const router = useRouter();
 
@@ -36,21 +40,33 @@ export function DashboardNavbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background border-b border-border h-16 flex items-center px-4 sm:px-6">
-      <div className="flex items-center justify-between w-full">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/logo.png"
-            alt="MeowMeal"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
-          <span className="font-bold text-lg text-primary hidden sm:block">
-            meowmeal
-          </span>
-        </Link>
+    <header className="sticky top-0 z-40 w-full bg-background border-b border-border h-16 flex items-center px-4 sm:px-6">
+      <div className="flex items-center justify-between w-full gap-4">
+
+        {/* Left — Hamburger (mobile) + Logo */}
+        <div className="flex items-center gap-3">
+          {/* Mobile hamburger */}
+          <button
+            onClick={onMenuClick}
+            className="md:hidden h-9 w-9 rounded-xl flex items-center justify-center hover:bg-muted transition-all cursor-pointer"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo.png"
+              alt="MeowMeal"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
+            <span className="font-black text-lg text-primary hidden sm:block">
+              meowmeal
+            </span>
+          </Link>
+        </div>
 
         {/* Right */}
         <div className="flex items-center gap-2">
@@ -60,7 +76,7 @@ export function DashboardNavbar() {
           {/* Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted transition-colors">
+              <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted transition-all cursor-pointer">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.image || ""} />
                   <AvatarFallback className="bg-primary text-white text-xs font-bold">
@@ -68,12 +84,8 @@ export function DashboardNavbar() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:flex flex-col text-left">
-                  <p className="text-xs font-semibold leading-none">
-                    {user?.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {user?.role}
-                  </p>
+                  <p className="text-xs font-semibold leading-none">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{user?.role}</p>
                 </div>
               </button>
             </DropdownMenuTrigger>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -34,6 +35,7 @@ export default function CustomerDashboardLayout({
 }) {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -54,9 +56,13 @@ export default function CustomerDashboardLayout({
 
   return (
     <div className="min-h-screen bg-secondary/30">
-      <DashboardNavbar />
+      <DashboardNavbar onMenuClick={() => setMobileOpen(true)} />
       <div className="flex">
-        <Sidebar menuItems={customerMenuItems} />
+        <Sidebar
+          menuItems={customerMenuItems}
+          mobileOpen={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+        />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">{children}</main>
       </div>
     </div>

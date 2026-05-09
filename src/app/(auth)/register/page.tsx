@@ -1,8 +1,9 @@
 "use client";
+
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp, signIn } from "@/lib/auth-client";
-import toast from "react-hot-toast";
-import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import api from "@/lib/axios";
 
 const registerSchema = z
   .object({
@@ -30,13 +31,17 @@ const registerSchema = z
 
 type RegisterInput = z.infer<typeof registerSchema>;
 
+interface AuthResponse {
+  token?: string;
+  session?: {
+    token?: string;
+  };
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const roleFromQuery = searchParams.get("role") as
-    | "CUSTOMER"
-    | "PROVIDER"
-    | null;
+  const roleFromQuery = searchParams.get("role") as "CUSTOMER" | "PROVIDER" | null;
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,6 +62,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterInput) => {
     setLoading(true);
     try {
+      // Step 1 — Register with Better Auth
       const res = await signUp.email({
         name: data.name,
         email: data.email,
@@ -68,11 +74,38 @@ export default function RegisterPage() {
         return;
       }
 
-      if (res.data?.token) {
-        localStorage.setItem("meowmeal_token", res.data.token);
+      // Step 2 — Token save করো
+      const token =
+        (res.data as AuthResponse)?.token ||
+        (res.data as AuthResponse)?.session?.token;
+
+      if (token) {
+        localStorage.setItem("meowmeal_token", token);
       }
 
-      toast.success("Account created successfully!");
+      // Step 3 — PROVIDER হলে role update করার পর re-login করো
+      if (data.role === "PROVIDER") {
+        try {
+          await api.patch("/users/me", { role: "PROVIDER" });
+
+          // Re-login to get fresh token with updated role
+          const loginRes = await signIn.email({
+            email: data.email,
+            password: data.password,
+          });
+
+          const newToken =
+            (loginRes.data as AuthResponse)?.token ||
+            (loginRes.data as AuthResponse)?.session?.token;
+          if (newToken) {
+            localStorage.setItem("meowmeal_token", newToken);
+          }
+        } catch (err) {
+          console.error("Role update or re-login failed:", err);
+        }
+      }
+
+      toast.success("Account created successfully!", { duration: 2000 });
 
       if (data.role === "PROVIDER") {
         router.push("/dashboard/provider");
@@ -88,6 +121,8 @@ export default function RegisterPage() {
     }
   };
 
+  
+
   const handleGoogleLogin = async () => {
     await signIn.social({ provider: "google" });
   };
@@ -95,13 +130,12 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left — Visual */}
-      <div className="hidden lg:flex flex-1 bg-linear-to-br from-primary to-primary-hover items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-primary-hover items-center justify-center p-12">
         <div className="text-center text-white">
           <div className="text-8xl mb-6">🍔</div>
           <h2 className="text-3xl font-bold mb-3">Join MeowMeal Today</h2>
           <p className="text-white/80 max-w-sm">
-            Create an account and start ordering from the best restaurants in
-            your city.
+            Create an account and start ordering from the best restaurants in your city.
           </p>
           <div className="mt-8 flex flex-col gap-3 text-left max-w-xs mx-auto">
             {[
@@ -110,10 +144,7 @@ export default function RegisterPage() {
               "AI-powered meal recommendations",
               "Exclusive deals and offers",
             ].map((feature) => (
-              <div
-                key={feature}
-                className="flex items-center gap-2 text-sm text-white/90"
-              >
+              <div key={feature} className="flex items-center gap-2 text-sm text-white/90">
                 <div className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
                   <span className="text-xs">✓</span>
                 </div>
@@ -129,13 +160,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-8">
-            <Image
-              src="/logo.png"
-              alt="MeowMeal"
-              width={36}
-              height={36}
-              className="rounded-lg"
-            />
+            <Image src="/logo.png" alt="MeowMeal" width={36} height={36} className="rounded-lg" />
             <span className="font-bold text-xl text-primary">meowmeal</span>
           </Link>
 
@@ -151,7 +176,7 @@ export default function RegisterPage() {
                 key={role}
                 type="button"
                 onClick={() => setValue("role", role)}
-                className={`flex-1 py-2.5 px-4 rounded-xl border text-sm font-medium transition-all ${
+                className={`flex-1 py-2.5 px-4 rounded-xl border text-sm font-semibold transition-all cursor-pointer ${
                   selectedRole === role
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border text-muted-foreground hover:border-primary/50"
@@ -163,10 +188,8 @@ export default function RegisterPage() {
           </div>
 
           {/* Form */}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-4"
-          >
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+
             {/* Name */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Full Name</Label>
@@ -177,9 +200,7 @@ export default function RegisterPage() {
                 className={errors.name ? "border-destructive" : ""}
               />
               {errors.name && (
-                <p className="text-xs text-destructive">
-                  {errors.name.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.name.message}</p>
               )}
             </div>
 
@@ -194,9 +215,7 @@ export default function RegisterPage() {
                 className={errors.email ? "border-destructive" : ""}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">
-                  {errors.email.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 
@@ -209,26 +228,18 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   {...register("password")}
-                  className={
-                    errors.password ? "border-destructive pr-10" : "pr-10"
-                  }
+                  className={errors.password ? "border-destructive pr-10" : "pr-10"}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-xs text-destructive">
-                  {errors.password.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
 
@@ -241,28 +252,18 @@ export default function RegisterPage() {
                   type={showConfirm ? "text" : "password"}
                   placeholder="••••••••"
                   {...register("confirmPassword")}
-                  className={
-                    errors.confirmPassword
-                      ? "border-destructive pr-10"
-                      : "pr-10"
-                  }
+                  className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {showConfirm ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="text-xs text-destructive">
-                  {errors.confirmPassword.message}
-                </p>
+                <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
               )}
             </div>
 
@@ -270,7 +271,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-primary hover:bg-primary-hover text-white mt-2"
+              className="w-full h-11 bg-primary hover:bg-primary-hover text-white mt-2 cursor-pointer"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -301,7 +302,7 @@ export default function RegisterPage() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-11"
+              className="w-full h-11 cursor-pointer"
               onClick={handleGoogleLogin}
             >
               <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
@@ -311,10 +312,7 @@ export default function RegisterPage() {
 
           <p className="text-sm text-center text-muted-foreground mt-6">
             Already have an account?{" "}
-            <Link
-              href="/login"
-              className="text-primary hover:underline font-medium"
-            >
+            <Link href="/login" className="text-primary hover:underline font-medium">
               Sign in
             </Link>
           </p>

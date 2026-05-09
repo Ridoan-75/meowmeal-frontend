@@ -30,7 +30,7 @@ export default function CustomerProfilePage() {
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
-      const res = await api.get("/auth/me");
+      const res = await api.get("/users/me");
       return res.data.data as User;
     },
   });
@@ -51,7 +51,7 @@ export default function CustomerProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: ProfileInput) => {
-      await api.patch("/auth/me", data);
+      await api.patch("/users/me", data);
     },
     onSuccess: () => {
       toast.success("Profile updated successfully");
