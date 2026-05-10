@@ -7,11 +7,12 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, LogIn, Sparkles, Users, Store, Shield } from "lucide-react";
+import { Eye, EyeOff, LogIn, Users, Store, Shield } from "lucide-react";
+import { FaGoogle } from "react-icons/fa";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth-client";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
@@ -83,34 +84,41 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-12 relative overflow-hidden">
 
-      {/* Background blobs */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+      {/* Background glows */}
+      <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] rounded-full bg-orange-500/8 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full bg-orange-400/6 blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-card border border-border rounded-3xl shadow-2xl shadow-black/10 dark:shadow-black/30 p-8">
+      {/* Subtle grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
+
+      <div className="w-full max-w-[420px] relative z-10">
+
+        {/* Card */}
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-7 backdrop-blur-sm shadow-2xl shadow-black/40">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 mb-8">
+          <Link href="/" className="flex items-center justify-center">
             <Image src="/logo.png" alt="MeowMeal" width={100} height={100} className="rounded-xl" />
-            <span className="font-black text-xl text-primary tracking-tight">MeowMeal</span>
+            <span className="text-white text-xl font-bold ">MeowMeal</span>
           </Link>
 
           {/* Heading */}
-          <div className="mb-7">
-            <h1 className="text-2xl font-extrabold">Welcome back</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              Sign in to continue ordering delicious food
-            </p>
+          <div className="mb-6">
+            <h1 className="text-white text-2xl font-bold">Welcome back</h1>
+            <p className="text-zinc-500 text-sm mt-1">Sign in to continue ordering delicious food</p>
           </div>
 
           {/* Demo Credentials */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2.5">
-              <p className="text-xl text-muted-foreground font-medium">Try a demo account</p>
-            </div>
+            <p className="text-zinc-400 text-sm font-medium mb-2.5">Try a demo account</p>
             <div className="grid grid-cols-3 gap-2">
               {demoCredentials.map((cred) => (
                 <button
@@ -118,19 +126,19 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => handleDemoLogin(cred)}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 py-3 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                    "flex flex-col items-center gap-1.5 py-3 px-3 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer",
                     activeDemo === cred.role
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border hover:border-primary/50 hover:bg-muted text-muted-foreground"
+                      ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
+                      : "border-zinc-800 bg-zinc-900 hover:border-zinc-700 text-zinc-400"
                   )}
                 >
                   <div className={cn(
-                    "h-8 w-8 rounded-lg flex items-center justify-center transition-all",
-                    activeDemo === cred.role ? "bg-primary/20" : "bg-muted"
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-colors",
+                    activeDemo === cred.role ? "bg-orange-500/20" : "bg-zinc-800"
                   )}>
                     <cred.icon className={cn(
-                      "h-4 w-4 transition-all",
-                      activeDemo === cred.role ? "text-primary" : "text-muted-foreground"
+                      "h-4 w-4",
+                      activeDemo === cred.role ? "text-orange-400" : "text-zinc-500"
                     )} />
                   </div>
                   {cred.role}
@@ -140,29 +148,31 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
 
             {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
+              <Label htmlFor="email" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
                 {...register("email")}
                 className={cn(
-                  "h-11 rounded-xl",
-                  errors.email && "border-destructive focus-visible:ring-destructive"
+                  "h-11 rounded-xl bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50 transition-colors",
+                  errors.email && "border-red-500/50"
                 )}
               />
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
             </div>
 
             {/* Password */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
+              <Label htmlFor="password" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -170,21 +180,19 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   {...register("password")}
                   className={cn(
-                    "h-11 rounded-xl pr-10",
-                    errors.password && "border-destructive focus-visible:ring-destructive"
+                    "h-11 rounded-xl bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50 pr-9 transition-colors",
+                    errors.password && "border-red-500/50"
                   )}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300 transition-colors cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
             </div>
 
             {/* Submit */}
@@ -192,11 +200,11 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className={cn(
-                "w-full h-11 rounded-xl text-sm font-bold text-white transition-all cursor-pointer mt-1",
-                "bg-primary hover:brightness-110 active:scale-[0.98]",
+                "w-full h-11 rounded-xl text-sm font-semibold text-white transition-all duration-200 cursor-pointer mt-1",
+                "bg-orange-500 hover:bg-orange-400 active:scale-[0.98]",
                 "flex items-center justify-center gap-2",
-                "shadow-lg shadow-primary/25",
-                loading && "opacity-80 cursor-not-allowed"
+                "shadow-lg shadow-orange-500/20",
+                loading && "opacity-70 cursor-not-allowed"
               )}
             >
               {loading ? (
@@ -213,12 +221,12 @@ export default function LoginPage() {
             </button>
 
             {/* Divider */}
-            <div className="relative my-1">
+            <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
+                <div className="w-full border-t border-zinc-800" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-3 text-muted-foreground">or</span>
+              <div className="relative flex justify-center text-[11px] uppercase tracking-widest">
+                <span className="bg-zinc-900/60 px-3 text-zinc-600">or</span>
               </div>
             </div>
 
@@ -226,16 +234,17 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="w-full h-11 rounded-xl border border-border text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted transition-all cursor-pointer active:scale-[0.98]"
+              className="w-full h-11 rounded-xl border border-zinc-800 bg-zinc-900 text-sm font-medium text-zinc-300 flex items-center justify-center gap-2.5 hover:bg-zinc-800 hover:border-zinc-700 hover:text-white transition-all duration-200 cursor-pointer active:scale-[0.98]"
             >
+              <FaGoogle className="h-3.5 w-3.5 text-red-400" />
               Continue with Google
             </button>
           </form>
 
           {/* Footer */}
-          <p className="text-sm text-center text-muted-foreground mt-6">
+          <p className="text-sm text-center text-zinc-600 mt-5">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline font-semibold">
+            <Link href="/register" className="text-orange-400 hover:text-orange-300 font-semibold transition-colors">
               Sign up
             </Link>
           </p>
