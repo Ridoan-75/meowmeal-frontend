@@ -8,8 +8,10 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     if (isLoading) return;
-    if (!user) return;
-
+    if (!user) {
+      window.location.assign("/login");
+      return;
+    }
     if (user.role === "ADMIN") {
       window.location.assign("/dashboard/admin");
     } else if (user.role === "PROVIDER") {

@@ -30,15 +30,23 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const [fallbackUser, setFallbackUser] = useState<SessionUser | null>(null);
-  const [fallbackDone, setFallbackDone] = useState(false);
+
+  // token না থাকলে সাথে সাথে done
+  const [fallbackDone, setFallbackDone] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !localStorage.getItem("meowmeal_token");
+  });
+
   const fetchedRef = useRef(false);
 
   useEffect(() => {
     if (isPending) return;
+
     if (session?.user) {
       queueMicrotask(() => setFallbackDone(true));
       return;
     }
+
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
