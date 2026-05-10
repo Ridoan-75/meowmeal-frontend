@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { DashboardNavbar } from "@/components/dashboard/DashboardNavbar";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import {
+  Brain,
   Mail,
   LayoutDashboard,
   Users,
@@ -20,6 +21,7 @@ const adminMenuItems = [
   { href: "/dashboard/admin/orders", label: "All Orders", icon: ShoppingBag },
   { href: "/dashboard/admin/categories", label: "Categories", icon: Tag },
   { href: "/dashboard/admin/providers", label: "Providers", icon: Store },
+  { href: "/dashboard/admin/ai-analytics", label: "AI Analytics", icon: Brain },
   { href: "/dashboard/admin/profile", label: "Profile", icon: Users },
   { href: "/dashboard/admin/newsletter", label: "Newsletter", icon: Mail },
 ];
