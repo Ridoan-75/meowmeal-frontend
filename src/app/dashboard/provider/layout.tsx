@@ -1,19 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { DashboardNavbar } from "@/components/dashboard/DashboardNavbar";
 import { Sidebar } from "@/components/dashboard/Sidebar";
-import { BarChart2 } from "lucide-react";
-import {
-  LayoutDashboard,
-  UtensilsCrossed,
-  ShoppingBag,
-  MessageSquare,
-  User,
-} from "lucide-react";
+import { BarChart2, LayoutDashboard, UtensilsCrossed, ShoppingBag, MessageSquare, User } from "lucide-react";
 
 const providerMenuItems = [
   { href: "/dashboard/provider", label: "Overview", icon: LayoutDashboard },
@@ -34,15 +26,17 @@ export default function ProviderDashboardLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading) return;
+    if (!isAuthenticated) {
       router.push("/login");
+      return;
     }
-    if (!isLoading && user && user.role !== "PROVIDER") {
+    if (user && user.role !== "PROVIDER") {
       router.push("/");
     }
   }, [isLoading, isAuthenticated, user, router]);
 
-  if (isLoading) {
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
