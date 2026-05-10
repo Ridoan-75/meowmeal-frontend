@@ -69,17 +69,17 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-20 lg:h-24 gap-5">
+        <div className="flex items-center h-20 gap-4">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
             <Image
               src="/logo.png"
               alt="MeowMeal"
               width={100}
               height={100}
-              className="rounded-xl"
+              className="rounded-xl transition-transform duration-300 group-hover:scale-105"
             />
             <span className="font-black text-xl text-primary hidden sm:block tracking-tight">
               MeowMeal
@@ -87,41 +87,38 @@ export function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+          <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative px-5 py-3 text-[15px] font-semibold transition-all duration-300",
+                  "relative px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200",
                   isActive(link.href)
-                    ? "text-primary"
-                    : "text-foreground/70 hover:text-primary",
+                    ? "text-primary bg-primary/8"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 )}
               >
                 {link.label}
-                <span
-                  className={cn(
-                    "absolute left-0 bottom-0 h-[2px] rounded-full bg-primary transition-all duration-300",
-                    isActive(link.href) ? "w-full" : "w-0",
-                  )}
-                />
+                {isActive(link.href) && (
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-0.5 w-4 rounded-full bg-primary" />
+                )}
               </Link>
             ))}
           </nav>
 
           {/* Right Side */}
           <div className="flex items-center gap-2 ml-auto">
-            {/* Dark Mode */}
-            <div className="flex items-center justify-center h-12 w-12 rounded-2xl border border-border bg-background shadow-sm cursor-pointer">
+            {/* Theme Toggle */}
+            <div className="flex items-center justify-center h-11 w-11 rounded-xl border border-border/60 bg-background hover:bg-muted transition-all cursor-pointer">
               <ThemeToggle />
             </div>
 
             {/* Auth Loading Skeleton */}
             {isLoading && (
               <div className="hidden md:flex items-center gap-2">
-                <div className="h-10 w-20 rounded-2xl bg-muted animate-pulse" />
-                <div className="h-10 w-20 rounded-2xl bg-muted animate-pulse" />
+                <div className="h-11 w-24 rounded-xl bg-muted animate-pulse" />
+                <div className="h-11 w-24 rounded-xl bg-muted animate-pulse" />
               </div>
             )}
 
@@ -132,64 +129,64 @@ export function Navbar() {
 
                 {user?.role === "CUSTOMER" && (
                   <>
+                    {/* Wishlist */}
                     <Link href="/dashboard/customer/wishlist">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="relative h-12 w-12 rounded-2xl hover:bg-primary/10 transition-all cursor-pointer"
-                      >
-                        <Heart className="h-5 w-5" />
+                      <button className="relative flex items-center justify-center h-11 w-11 rounded-xl border border-border/60 bg-background hover:bg-muted transition-all cursor-pointer">
+                        <Heart className="h-5 w-5 text-muted-foreground" />
                         {wishlistCount > 0 && (
                           <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
                             {wishlistCount > 9 ? "9+" : wishlistCount}
                           </span>
                         )}
-                      </Button>
+                      </button>
                     </Link>
 
+                    {/* Cart */}
                     <Link href="/dashboard/customer/cart">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="relative h-12 w-12 rounded-2xl hover:bg-primary/10 transition-all cursor-pointer"
-                      >
-                        <ShoppingCart className="h-5 w-5" />
+                      <button className="relative flex items-center justify-center h-11 w-11 rounded-xl border border-border/60 bg-background hover:bg-muted transition-all cursor-pointer">
+                        <ShoppingCart className="h-5 w-5 text-muted-foreground" />
                         {totalItems > 0 && (
                           <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
                             {totalItems > 9 ? "9+" : totalItems}
                           </span>
                         )}
-                      </Button>
+                      </button>
                     </Link>
                   </>
                 )}
 
+                {/* User Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="h-12 px-3 rounded-2xl flex items-center gap-2 hover:bg-muted transition-all cursor-pointer"
-                    >
-                      <Avatar className="h-9 w-9 border">
+                    <button className="flex items-center gap-2 h-11 px-3 rounded-xl border border-border/60 bg-background hover:bg-muted transition-all cursor-pointer outline-none">
+                      <Avatar className="h-7 w-7 shrink-0">
                         <AvatarImage src={user?.image || ""} />
-                        <AvatarFallback className="bg-primary text-white font-bold">
+                        <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
                           {user?.name?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <ChevronDown className="hidden sm:block h-4 w-4 text-muted-foreground" />
-                    </Button>
+                      <span className="hidden sm:block text-sm font-semibold max-w-[80px] truncate">
+                        {user?.name?.split(" ")[0]}
+                      </span>
+                      <ChevronDown className="hidden sm:block h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
-                    className="w-60 rounded-2xl p-2"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={16}
+                    className="w-56 rounded-2xl p-2"
                   >
                     <DropdownMenuLabel>
                       <div className="flex flex-col gap-1">
-                        <p className="font-semibold">{user?.name}</p>
+                        <p className="font-semibold text-sm truncate">
+                          {user?.name}
+                        </p>
                         <p className="truncate text-xs text-muted-foreground">
                           {user?.email}
                         </p>
-                        <span className="w-fit rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                        <span className="w-fit rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary uppercase tracking-wide mt-0.5">
                           {user?.role}
                         </span>
                       </div>
@@ -198,7 +195,7 @@ export function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link
                         href={getDashboardLink()}
-                        className="cursor-pointer rounded-lg"
+                        className="cursor-pointer rounded-xl text-sm"
                       >
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         Dashboard
@@ -207,7 +204,7 @@ export function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link
                         href={`${getDashboardLink()}/profile`}
-                        className="cursor-pointer rounded-lg"
+                        className="cursor-pointer rounded-xl text-sm"
                       >
                         <User className="mr-2 h-4 w-4" />
                         Profile
@@ -217,7 +214,7 @@ export function Navbar() {
                       <DropdownMenuItem asChild>
                         <Link
                           href="/dashboard/customer/orders"
-                          className="cursor-pointer rounded-lg"
+                          className="cursor-pointer rounded-xl text-sm"
                         >
                           <UtensilsCrossed className="mr-2 h-4 w-4" />
                           My Orders
@@ -227,7 +224,7 @@ export function Navbar() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleSignOut}
-                      className="cursor-pointer rounded-lg text-destructive focus:text-destructive"
+                      className="cursor-pointer rounded-xl text-sm text-destructive focus:text-destructive focus:bg-destructive/10"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
                       Sign Out
@@ -242,14 +239,14 @@ export function Navbar() {
               <div className="hidden md:flex items-center gap-2">
                 <Link href="/login">
                   <Button
-                    variant="outline"
-                    className="h-12 px-6 rounded-2xl font-semibold border-border hover:border-primary hover:text-primary transition-all cursor-pointer"
+                    variant="ghost"
+                    className="h-11 px-5 rounded-xl text-sm font-semibold hover:bg-muted transition-all cursor-pointer"
                   >
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button className="h-12 px-6 rounded-2xl font-semibold bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20 transition-all cursor-pointer">
+                  <Button className="h-11 px-5 rounded-xl text-sm font-semibold bg-primary hover:brightness-110 text-white shadow-md shadow-primary/20 transition-all cursor-pointer">
                     Sign Up
                   </Button>
                 </Link>
@@ -259,74 +256,67 @@ export function Navbar() {
             {/* Mobile Hamburger */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild>
-                <button className="lg:hidden flex flex-col items-center justify-center h-12 w-12 rounded-2xl hover:bg-muted transition-all cursor-pointer gap-1.5 border border-border">
+                <button className="lg:hidden flex flex-col items-center justify-center h-11 w-11 rounded-xl hover:bg-muted transition-all cursor-pointer gap-[5px] border border-border/60">
                   <span
                     className={cn(
-                      "block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300",
-                      mobileOpen ? "rotate-45 translate-y-2" : "",
+                      "block h-0.5 w-5 bg-foreground rounded-full transition-all duration-300",
+                      mobileOpen ? "rotate-45 translate-y-[7px]" : "",
                     )}
                   />
                   <span
                     className={cn(
                       "block h-0.5 bg-foreground rounded-full transition-all duration-300",
-                      mobileOpen ? "opacity-0 w-0" : "w-4",
+                      mobileOpen ? "opacity-0 w-0" : "w-3",
                     )}
                   />
                   <span
                     className={cn(
-                      "block h-0.5 w-6 bg-foreground rounded-full transition-all duration-300",
-                      mobileOpen ? "-rotate-45 -translate-y-2" : "",
+                      "block h-0.5 w-5 bg-foreground rounded-full transition-all duration-300",
+                      mobileOpen ? "-rotate-45 -translate-y-[7px]" : "",
                     )}
                   />
                 </button>
               </SheetTrigger>
 
-              <SheetContent side="right" className="w-80 p-0 [&>button]:hidden">
+              <SheetContent side="right" className="w-72 p-0 [&>button]:hidden">
                 <div className="flex flex-col h-full">
                   {/* Mobile Header */}
-                  <div className="relative overflow-hidden border-b border-border">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-accent/10" />
-                    <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-primary/20 blur-2xl" />
-                    <div className="absolute -bottom-4 -left-4 h-16 w-16 rounded-full bg-accent/20 blur-xl" />
-                    <div className="relative flex flex-col items-center justify-center py-8 gap-3">
-                      <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg shadow-primary/20 border-2 border-primary/20">
-                        <Image
-                          src="/logo.png"
-                          alt="MeowMeal"
-                          width={100}
-                          height={100}
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-black text-xl text-primary tracking-tight">
-                          MeowMeal
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Delicious food delivered fast
-                        </p>
-                      </div>
+                  <div className="border-b border-border/50 px-5 py-6 flex items-center gap-3">
+                    <Image
+                      src="/logo.png"
+                      alt="MeowMeal"
+                      width={36}
+                      height={36}
+                      className="rounded-xl"
+                    />
+                    <div>
+                      <p className="font-black text-base text-primary tracking-tight">
+                        meowmeal
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Delicious food, fast delivery
+                      </p>
                     </div>
                   </div>
 
                   {/* Mobile Nav Links */}
-                  <nav className="flex flex-col gap-1 p-5">
+                  <nav className="flex flex-col gap-0.5 p-4">
                     {navLinks.map((link) => (
                       <Link
                         key={link.href}
                         href={link.href}
                         onClick={() => setMobileOpen(false)}
                         className={cn(
-                          "relative flex items-center px-5 py-4 text-sm font-semibold rounded-xl transition-all duration-300",
+                          "flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200",
                           isActive(link.href)
-                            ? "text-primary bg-primary/5"
-                            : "text-foreground/70 hover:text-primary hover:bg-muted",
+                            ? "text-primary bg-primary/8"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted",
                         )}
                       >
-                        {link.label}
                         {isActive(link.href) && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-primary rounded-full" />
+                          <span className="mr-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                         )}
+                        {link.label}
                       </Link>
                     ))}
                     {!isLoading && isAuthenticated && (
@@ -334,26 +324,27 @@ export function Navbar() {
                         href={getDashboardLink()}
                         onClick={() => setMobileOpen(false)}
                         className={cn(
-                          "relative flex items-center px-5 py-4 text-sm font-semibold rounded-xl transition-all duration-300",
+                          "flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200",
                           isActive(getDashboardLink())
-                            ? "text-primary bg-primary/5"
-                            : "text-foreground/70 hover:text-primary hover:bg-muted",
+                            ? "text-primary bg-primary/8"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted",
                         )}
                       >
-                        Dashboard
                         {isActive(getDashboardLink()) && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 bg-primary rounded-full" />
+                          <span className="mr-2.5 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                         )}
+                        Dashboard
                       </Link>
                     )}
                   </nav>
 
+                  {/* Mobile Auth — bottom */}
                   {!isLoading && !isAuthenticated && (
-                    <div className="mt-auto p-5 border-t border-border flex flex-col gap-3">
+                    <div className="mt-auto p-4 border-t border-border/50 flex flex-col gap-2">
                       <Link href="/login" onClick={() => setMobileOpen(false)}>
                         <Button
                           variant="outline"
-                          className="w-full h-12 rounded-2xl cursor-pointer"
+                          className="w-full h-11 rounded-xl text-sm font-semibold cursor-pointer"
                         >
                           Sign In
                         </Button>
@@ -362,7 +353,7 @@ export function Navbar() {
                         href="/register"
                         onClick={() => setMobileOpen(false)}
                       >
-                        <Button className="w-full h-12 rounded-2xl bg-primary hover:bg-primary-hover text-white cursor-pointer">
+                        <Button className="w-full h-11 rounded-xl text-sm font-semibold bg-primary hover:brightness-110 text-white cursor-pointer">
                           Sign Up
                         </Button>
                       </Link>
@@ -370,10 +361,10 @@ export function Navbar() {
                   )}
 
                   {!isLoading && isAuthenticated && (
-                    <div className="mt-auto p-5 border-t border-border">
+                    <div className="mt-auto p-4 border-t border-border/50">
                       <Button
                         variant="outline"
-                        className="w-full h-12 rounded-2xl border-destructive text-destructive hover:bg-destructive/10 cursor-pointer"
+                        className="w-full h-11 rounded-xl text-sm font-semibold border-destructive/40 text-destructive hover:bg-destructive/10 cursor-pointer"
                         onClick={() => {
                           handleSignOut();
                           setMobileOpen(false);
