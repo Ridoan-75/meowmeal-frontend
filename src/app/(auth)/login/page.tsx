@@ -109,11 +109,11 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-  await signIn.social({
-    provider: "google",
-    callbackURL: "https://meowmeal-frontend.vercel.app/dashboard/customer",
-  });
-};
+    await signIn.social({
+      provider: "google",
+      callbackURL: "https://meowmeal-frontend.vercel.app/auth/callback",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-12 relative overflow-hidden">
