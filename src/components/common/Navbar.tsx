@@ -15,7 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   ShoppingCart,
   User,
@@ -53,8 +58,8 @@ export function Navbar() {
   const handleSignOut = async () => {
     await signOut();
     localStorage.removeItem("meowmeal_token");
-    router.push("/");
-    router.refresh();
+    localStorage.removeItem("meowmeal_user_id");
+    window.location.href = "/";
   };
 
   const getDashboardLink = () => {
