@@ -29,8 +29,8 @@ export function DashboardNavbar({ onMenuClick }: DashboardNavbarProps) {
   const handleSignOut = async () => {
     await signOut();
     localStorage.removeItem("meowmeal_token");
-    router.push("/");
-    router.refresh();
+    localStorage.removeItem("meowmeal_user_id");
+    window.location.assign("/");
   };
 
   const getProfileLink = () => {
@@ -42,7 +42,6 @@ export function DashboardNavbar({ onMenuClick }: DashboardNavbarProps) {
   return (
     <header className="sticky top-0 z-40 w-full bg-background border-b border-border h-16 flex items-center px-4 sm:px-6">
       <div className="flex items-center justify-between w-full gap-4">
-
         {/* Left — Hamburger (mobile) + Logo */}
         <div className="flex items-center gap-3">
           {/* Mobile hamburger */}
@@ -84,8 +83,12 @@ export function DashboardNavbar({ onMenuClick }: DashboardNavbarProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:flex flex-col text-left">
-                  <p className="text-xs font-semibold leading-none">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{user?.role}</p>
+                  <p className="text-xs font-semibold leading-none">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {user?.role}
+                  </p>
                 </div>
               </button>
             </DropdownMenuTrigger>
