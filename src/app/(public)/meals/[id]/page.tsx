@@ -78,10 +78,10 @@ export default function MealDetailsPage() {
     queryKey: ["can-review", id],
     queryFn: async () => {
       if (!isAuthenticated || user?.role !== "CUSTOMER") return false;
-      const res = await api.get(`/orders/my-orders?status=DELIVERED`);
+      const res = await api.get(`/orders/my-orders?limit=100`);
       const orders = res.data.data as Order[];
       return orders.some((order: Order) =>
-        order.items.some((item) => item.mealId === id),
+        order.items.some((item) => item.meal?.id === id),
       );
     },
     enabled: isAuthenticated && user?.role === "CUSTOMER",
