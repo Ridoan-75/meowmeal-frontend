@@ -15,6 +15,8 @@ import { signUp, signIn } from "@/lib/auth-client";
 import { toast } from "sonner";
 import api from "@/lib/axios";
 import { cn } from "@/lib/utils";
+import { Suspense } from "react";
+
 
 const registerSchema = z
   .object({
@@ -51,7 +53,7 @@ const roles = [
   },
 ];
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roleFromQuery = searchParams.get("role") as "CUSTOMER" | "PROVIDER" | null;
@@ -339,5 +341,12 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a]" />}>
+      <RegisterForm />
+    </Suspense>
   );
 }
