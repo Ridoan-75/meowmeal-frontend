@@ -11,7 +11,6 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     if (isLoading) return;
 
-    // Session token localStorage এ save করো
     if (session?.session?.token) {
       localStorage.setItem("meowmeal_token", session.session.token);
     }
