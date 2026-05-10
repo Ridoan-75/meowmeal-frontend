@@ -7,13 +7,12 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, LogIn } from "lucide-react";
-import { FaGoogle } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
+import { Eye, EyeOff, LogIn, Sparkles, Users, Store, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth-client";
 import toast from "react-hot-toast";
+import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -23,15 +22,16 @@ const loginSchema = z.object({
 type LoginInput = z.infer<typeof loginSchema>;
 
 const demoCredentials = [
-  { role: "Customer", email: "rahim@gmail.com", password: "password123" },
-  { role: "Provider", email: "salamsbistro@gmail.com", password: "password123" },
-  { role: "Admin", email: "admin@meowmeal.com", password: "password123" },
+  { role: "Customer", email: "rahim@gmail.com", password: "password123", icon: Users },
+  { role: "Provider", email: "salamsbistro@gmail.com", password: "password123", icon: Store },
+  { role: "Admin", email: "admin@meowmeal.com", password: "password123", icon: Shield },
 ];
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeDemo, setActiveDemo] = useState<string | null>(null);
 
   const {
     register,
@@ -55,21 +55,15 @@ export default function LoginPage() {
         return;
       }
 
-      // token save করো
       if (res.data?.token) {
         localStorage.setItem("meowmeal_token", res.data.token);
       }
-
-      // user id save করো
       if (res.data?.user?.id) {
         localStorage.setItem("meowmeal_user_id", res.data.user.id);
       }
 
       toast.success("Welcome back!");
-
-      // Redirect to dashboard (role will be determined by backend)
       router.push("/dashboard/customer");
-
       router.refresh();
     } catch {
       toast.error("Something went wrong. Please try again.");
@@ -78,9 +72,10 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = (email: string, password: string) => {
-    setValue("email", email);
-    setValue("password", password);
+  const handleDemoLogin = (cred: typeof demoCredentials[0]) => {
+    setValue("email", cred.email, { shouldValidate: true });
+    setValue("password", cred.password, { shouldValidate: true });
+    setActiveDemo(cred.role);
   };
 
   const handleGoogleLogin = async () => {
@@ -88,34 +83,56 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left — Form */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12 relative overflow-hidden">
+
+      {/* Background blobs */}
+      <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-card border border-border rounded-3xl shadow-2xl shadow-black/10 dark:shadow-black/30 p-8">
+
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 mb-8">
-            <Image src="/logo.png" alt="MeowMeal" width={36} height={36} className="rounded-lg" />
-            <span className="font-bold text-xl text-primary">meowmeal</span>
+          <Link href="/" className="flex items-center gap-2.5 mb-8">
+            <Image src="/logo.png" alt="MeowMeal" width={100} height={100} className="rounded-xl" />
+            <span className="font-black text-xl text-primary tracking-tight">MeowMeal</span>
           </Link>
 
-          <h1 className="text-2xl font-bold mb-1">Welcome back</h1>
-          <p className="text-muted-foreground text-sm mb-8">
-            Sign in to your account to continue
-          </p>
+          {/* Heading */}
+          <div className="mb-7">
+            <h1 className="text-2xl font-extrabold">Welcome back</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Sign in to continue ordering delicious food
+            </p>
+          </div>
 
           {/* Demo Credentials */}
           <div className="mb-6">
-            <p className="text-xs text-muted-foreground mb-2 font-medium">
-              Demo Accounts — Click to auto-fill:
-            </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex items-center gap-2 mb-2.5">
+              <p className="text-xl text-muted-foreground font-medium">Try a demo account</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
               {demoCredentials.map((cred) => (
                 <button
                   key={cred.role}
                   type="button"
-                  onClick={() => handleDemoLogin(cred.email, cred.password)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
+                  onClick={() => handleDemoLogin(cred)}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 py-3 px-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer",
+                    activeDemo === cred.role
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border hover:border-primary/50 hover:bg-muted text-muted-foreground"
+                  )}
                 >
+                  <div className={cn(
+                    "h-8 w-8 rounded-lg flex items-center justify-center transition-all",
+                    activeDemo === cred.role ? "bg-primary/20" : "bg-muted"
+                  )}>
+                    <cred.icon className={cn(
+                      "h-4 w-4 transition-all",
+                      activeDemo === cred.role ? "text-primary" : "text-muted-foreground"
+                    )} />
+                  </div>
                   {cred.role}
                 </button>
               ))}
@@ -124,15 +141,19 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+
             {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
                 {...register("email")}
-                className={errors.email ? "border-destructive" : ""}
+                className={cn(
+                  "h-11 rounded-xl",
+                  errors.email && "border-destructive focus-visible:ring-destructive"
+                )}
               />
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email.message}</p>
@@ -141,25 +162,24 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   {...register("password")}
-                  className={errors.password ? "border-destructive pr-10" : "pr-10"}
+                  className={cn(
+                    "h-11 rounded-xl pr-10",
+                    errors.password && "border-destructive focus-visible:ring-destructive"
+                  )}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && (
@@ -168,23 +188,29 @@ export default function LoginPage() {
             </div>
 
             {/* Submit */}
-            <Button
+            <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-primary hover:bg-primary-hover text-white mt-2"
+              className={cn(
+                "w-full h-11 rounded-xl text-sm font-bold text-white transition-all cursor-pointer mt-1",
+                "bg-primary hover:brightness-110 active:scale-[0.98]",
+                "flex items-center justify-center gap-2",
+                "shadow-lg shadow-primary/25",
+                loading && "opacity-80 cursor-not-allowed"
+              )}
             >
               {loading ? (
-                <span className="flex items-center gap-2">
+                <>
                   <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in...
-                </span>
+                </>
               ) : (
-                <span className="flex items-center gap-2">
+                <>
                   <LogIn className="h-4 w-4" />
                   Sign In
-                </span>
+                </>
               )}
-            </Button>
+            </button>
 
             {/* Divider */}
             <div className="relative my-1">
@@ -192,43 +218,26 @@ export default function LoginPage() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  or continue with
-                </span>
+                <span className="bg-card px-3 text-muted-foreground">or</span>
               </div>
             </div>
 
-            {/* Google Login */}
-            <Button
+            {/* Google */}
+            <button
               type="button"
-              variant="outline"
-              className="w-full h-11"
               onClick={handleGoogleLogin}
+              className="w-full h-11 rounded-xl border border-border text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted transition-all cursor-pointer active:scale-[0.98]"
             >
-              <FaGoogle className="mr-2 h-4 w-4 text-red-500" />
               Continue with Google
-            </Button>
+            </button>
           </form>
 
+          {/* Footer */}
           <p className="text-sm text-center text-muted-foreground mt-6">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline font-medium">
+            <Link href="/register" className="text-primary hover:underline font-semibold">
               Sign up
             </Link>
-          </p>
-        </div>
-      </div>
-
-      {/* Right — Visual */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary to-primary-hover items-center justify-center p-12">
-        <div className="text-center text-white">
-          <div className="text-8xl mb-6">🍱</div>
-          <h2 className="text-3xl font-bold mb-3">
-            Delicious Food Awaits
-          </h2>
-          <p className="text-white/80 max-w-sm">
-            Sign in to order from hundreds of restaurants and get your
-            favorite meals delivered fast.
           </p>
         </div>
       </div>
