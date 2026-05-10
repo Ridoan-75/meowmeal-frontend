@@ -83,8 +83,8 @@ export function AIChatbot() {
                 <Image src="/chatbot.png" alt="MeowMeal AI" width={32} height={32} className="rounded-full object-cover" />
               </div>
               <div>
-                <p className="text-white font-bold text-sm">MeowMeal AI</p>
-                <p className="text-white/70 text-xs">Always here to help</p>
+                <p className="text-black font-bold text-sm">MeowMeal AI</p>
+                <p className="text-secondary text-xs">Always here to help</p>
               </div>
             </div>
             <button
@@ -169,10 +169,6 @@ export function AIChatbot() {
           height={80}
           className="relative rounded-full object-cover shadow-2xl shadow-primary/30 z-10"
         />
-        <div className="absolute -top-1 -right-1 z-20 bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-md flex items-center gap-0.5">
-          <Sparkles className="h-2.5 w-2.5" />
-          AI
-        </div>
       </button>
     </>
   );
