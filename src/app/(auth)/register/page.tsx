@@ -136,7 +136,7 @@ function RegisterForm() {
   const handleGoogleLogin = async () => {
     await signIn.social({
       provider: "google",
-      callbackURL: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      callbackURL: "https://meowmeal-frontend.vercel.app/dashboard/customer",
     });
   };
 
