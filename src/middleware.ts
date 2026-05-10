@@ -11,16 +11,18 @@ const authRoutes = ["/login", "/register"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get("better-auth.session_token")?.value;
+  
+  // Production এ secure cookie, development এ normal cookie
+  const token =
+    request.cookies.get("better-auth.session_token")?.value ||
+    request.cookies.get("__Secure-better-auth.session_token")?.value;
 
-  // Redirect logged in users away from auth pages
   if (authRoutes.some((route) => pathname.startsWith(route))) {
     if (token) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  // Protect dashboard routes
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url));
