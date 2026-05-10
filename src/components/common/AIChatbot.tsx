@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Bot, User, Sparkles } from "lucide-react";
+import { X, Send, User, Sparkles } from "lucide-react";
 import Image from "next/image";
 import api from "@/lib/axios";
+import { usePathname } from "next/navigation";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,6 +12,7 @@ interface Message {
 }
 
 export function AIChatbot() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -28,19 +30,20 @@ export function AIChatbot() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Auto focus input after send
   useEffect(() => {
     if (!loading && open) {
       inputRef.current?.focus();
     }
   }, [loading, open]);
 
-  // Focus input when chat opens
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
+
+  // Login/Register page এ দেখাবে না
+  if (pathname === "/login" || pathname === "/register") return null;
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -77,12 +80,12 @@ export function AIChatbot() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary shrink-0">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
                 <Image
                   src="/chatbot.png"
                   alt="MeowMeal AI"
-                  width={100}
-                  height={100}
+                  width={32}
+                  height={32}
                   className="rounded-full object-cover"
                 />
               </div>
@@ -107,7 +110,7 @@ export function AIChatbot() {
           >
             {messages.map((msg, i) => (
               <div key={i} className={`flex items-start gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                <div className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${msg.role === "assistant" ? "bg-primary/10" : "bg-secondary"}`}>
+                <div className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 overflow-hidden ${msg.role === "assistant" ? "bg-primary/10" : "bg-secondary"}`}>
                   {msg.role === "assistant" ? (
                     <Image src="/chatbot.png" alt="AI" width={28} height={28} className="rounded-full object-cover" />
                   ) : (
@@ -122,7 +125,7 @@ export function AIChatbot() {
 
             {loading && (
               <div className="flex items-start gap-2">
-                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
                   <Image src="/chatbot.png" alt="AI" width={28} height={28} className="rounded-full object-cover" />
                 </div>
                 <div className="bg-secondary rounded-2xl rounded-tl-none px-3 py-2">
@@ -159,16 +162,13 @@ export function AIChatbot() {
         </div>
       )}
 
-      {/* Toggle Button — with pulse animation */}
+      {/* Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
         className="fixed bottom-8 right-4 sm:right-6 z-50 h-20 w-20 rounded-full flex items-center justify-center transition-all hover:scale-110 overflow-visible"
       >
-        {/* Pulse rings */}
         <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
         <span className="absolute inset-1 rounded-full bg-primary/10 animate-pulse" />
-
-        {/* Image */}
         <Image
           src="/chatbot.png"
           alt="MeowMeal AI"

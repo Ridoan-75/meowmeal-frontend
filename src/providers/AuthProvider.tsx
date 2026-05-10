@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/auth-client";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 
 interface SessionUser {
   id: string;
@@ -30,61 +30,41 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const [fallbackUser, setFallbackUser] = useState<SessionUser | null>(null);
-  
-  // Token থাকলে initially true রাখো
-  const [fallbackLoading, setFallbackLoading] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !!localStorage.getItem("meowmeal_token");
-    }
-    return false;
-  });
+  const [fallbackDone, setFallbackDone] = useState(false);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    let isMounted = true;
+    if (isPending) return;
+    if (session?.user) {
+      queueMicrotask(() => setFallbackDone(true));
+      return;
+    }
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
 
-    const fetchUser = async () => {
-      if (!isPending && !session?.user) {
-        const token = localStorage.getItem("meowmeal_token");
-        if (token) {
-          try {
-            const response = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/users/me`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-            const data = await response.json();
-            if (isMounted && data?.data?.id) {
-              setFallbackUser(data.data);
-            }
-          } catch (error) {
-            // Handle error silently
-          } finally {
-            if (isMounted) {
-              setFallbackLoading(false);
-            }
-          }
-        } else {
-          if (isMounted) {
-            setFallbackLoading(false);
-          }
+    const token = localStorage.getItem("meowmeal_token");
+    if (!token) {
+      queueMicrotask(() => setFallbackDone(true));
+      return;
+    }
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.data?.id) {
+          setFallbackUser(data.data);
         }
-      } else {
-        if (isMounted) {
-          setFallbackLoading(false);
-        }
-      }
-    };
-
-    fetchUser();
-
-    return () => {
-      isMounted = false;
-    };
+      })
+      .catch(() => {})
+      .finally(() => {
+        setFallbackDone(true);
+      });
   }, [isPending, session]);
 
   const user = (session?.user as SessionUser) || fallbackUser;
-  const isLoading = isPending || fallbackLoading;
+  const isLoading = isPending || !fallbackDone;
 
   return (
     <AuthContext.Provider
