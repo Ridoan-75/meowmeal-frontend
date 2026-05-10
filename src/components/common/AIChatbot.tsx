@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { X, Send, Bot, User, Sparkles } from "lucide-react";
+import Image from "next/image";
 import api from "@/lib/axios";
 
 interface Message {
@@ -30,21 +29,18 @@ export function AIChatbot() {
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
-
     const userMessage = input.trim();
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setLoading(true);
-
     try {
       const res = await api.post("/ai/chat", {
         message: userMessage,
         conversationHistory: messages,
       });
-      const reply = res.data.data.message;
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: reply },
+        { role: "assistant", content: res.data.data.message },
       ]);
     } catch {
       setMessages((prev) => [
@@ -70,45 +66,35 @@ export function AIChatbot() {
     <>
       {/* Chat Window */}
       {open && (
-        <div className="fixed bottom-20 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-28 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[60vh]">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-primary">
+          <div className="flex items-center justify-between px-4 py-3 bg-primary shrink-0">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">
-                  MeowMeal AI
-                </p>
+                <p className="text-white font-semibold text-sm">MeowMeal AI</p>
                 <p className="text-white/70 text-xs">Always here to help</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-white hover:bg-white/20 rounded-full"
+            <button
               onClick={() => setOpen(false)}
+              className="h-7 w-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all cursor-pointer"
             >
-              <X className="h-4 w-4" />
-            </Button>
+              <X className="h-4 w-4 text-white" />
+            </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 max-h-80">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
             {messages.map((msg, i) => (
               <div
                 key={i}
-                className={`flex items-start gap-2 ${
-                  msg.role === "user" ? "flex-row-reverse" : ""
-                }`}
+                className={`flex items-start gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
               >
                 <div
-                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${
-                    msg.role === "assistant"
-                      ? "bg-primary/10"
-                      : "bg-secondary"
-                  }`}
+                  className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${msg.role === "assistant" ? "bg-primary/10" : "bg-secondary"}`}
                 >
                   {msg.role === "assistant" ? (
                     <Bot className="h-4 w-4 text-primary" />
@@ -117,11 +103,7 @@ export function AIChatbot() {
                   )}
                 </div>
                 <div
-                  className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                    msg.role === "assistant"
-                      ? "bg-secondary text-foreground rounded-tl-none"
-                      : "bg-primary text-white rounded-tr-none"
-                  }`}
+                  className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${msg.role === "assistant" ? "bg-secondary text-foreground rounded-tl-none" : "bg-primary text-white rounded-tr-none"}`}
                 >
                   {msg.content}
                 </div>
@@ -146,23 +128,22 @@ export function AIChatbot() {
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-border flex gap-2">
-            <Input
+          <div className="p-3 border-t border-border flex items-center gap-2 shrink-0 bg-card">
+            <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything about food..."
-              className="h-9 text-sm"
               disabled={loading}
+              className="flex-1 h-10 px-3 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-all disabled:opacity-50"
             />
-            <Button
-              size="icon"
-              className="h-9 w-9 bg-primary hover:bg-primary-hover text-white shrink-0"
+            <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
+              className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shrink-0 hover:brightness-110 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <Send className="h-4 w-4" />
-            </Button>
+              <Send className="h-4 w-4 text-white" />
+            </button>
           </div>
         </div>
       )}
@@ -170,13 +151,15 @@ export function AIChatbot() {
       {/* Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-4 right-4 sm:right-6 z-50 h-14 w-14 rounded-full bg-primary hover:bg-primary-hover text-white shadow-lg flex items-center justify-center transition-all hover:scale-105"
+        className="fixed bottom-8 right-4 sm:right-6 z-50 h-20 w-20 rounded-full shadow-2xl shadow-primary/30 flex items-center justify-center transition-all hover:scale-110 overflow-hidden"
       >
-        {open ? (
-          <X className="h-6 w-6" />
-        ) : (
-          <MessageCircle className="h-6 w-6" />
-        )}
+        <Image
+          src="/chatbot.png"
+          alt="MeowMeal AI"
+          width={80}
+          height={80}
+          className="rounded-full object-cover"
+        />
       </button>
     </>
   );
