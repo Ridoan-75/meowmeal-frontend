@@ -23,9 +23,24 @@ const loginSchema = z.object({
 type LoginInput = z.infer<typeof loginSchema>;
 
 const demoCredentials = [
-  { role: "Customer", email: "rahim@gmail.com", password: "password123", icon: Users },
-  { role: "Provider", email: "salamsbistro@gmail.com", password: "password123", icon: Store },
-  { role: "Admin", email: "admin@meowmeal.com", password: "password123", icon: Shield },
+  {
+    role: "Customer",
+    email: "rahim@gmail.com",
+    password: "password123",
+    icon: Users,
+  },
+  {
+    role: "Provider",
+    email: "salamsbistro@gmail.com",
+    password: "password123",
+    icon: Store,
+  },
+  {
+    role: "Admin",
+    email: "admin@meowmeal.com",
+    password: "password123",
+    icon: Shield,
+  },
 ];
 
 export default function LoginPage() {
@@ -65,7 +80,6 @@ export default function LoginPage() {
 
       toast.success("Welcome back!");
 
-      // API থেকে role নাও
       const meRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: {
           Authorization: `Bearer ${res.data?.token || localStorage.getItem("meowmeal_token")}`,
@@ -75,14 +89,12 @@ export default function LoginPage() {
       const role = meData?.data?.role;
 
       if (role === "ADMIN") {
-        router.push("/dashboard/admin");
+        window.location.assign("/dashboard/admin");
       } else if (role === "PROVIDER") {
-        router.push("/dashboard/provider");
+        window.location.assign("/dashboard/provider");
       } else {
-        router.push("/dashboard/customer");
+        window.location.assign("/dashboard/customer");
       }
-      router.refresh();
-
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
@@ -90,7 +102,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = (cred: typeof demoCredentials[0]) => {
+  const handleDemoLogin = (cred: (typeof demoCredentials)[0]) => {
     setValue("email", cred.email, { shouldValidate: true });
     setValue("password", cred.password, { shouldValidate: true });
     setActiveDemo(cred.role);
@@ -102,7 +114,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4 py-12 relative overflow-hidden">
-
       {/* Background glows */}
       <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] rounded-full bg-orange-500/8 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full bg-orange-400/6 blur-[120px] pointer-events-none" />
@@ -111,31 +122,40 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.03]"
         style={{
-          backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+          backgroundImage:
+            "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }}
       />
 
       <div className="w-full max-w-[420px] relative z-10">
-
         {/* Card */}
         <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-7 backdrop-blur-sm shadow-2xl shadow-black/40">
-
           {/* Logo */}
           <Link href="/" className="flex items-center justify-center">
-            <Image src="/logo.png" alt="MeowMeal" width={100} height={100} className="rounded-xl" />
+            <Image
+              src="/logo.png"
+              alt="MeowMeal"
+              width={100}
+              height={100}
+              className="rounded-xl"
+            />
             <span className="text-white text-xl font-bold ">MeowMeal</span>
           </Link>
 
           {/* Heading */}
           <div className="mb-6">
             <h1 className="text-white text-2xl font-bold">Welcome back</h1>
-            <p className="text-zinc-500 text-sm mt-1">Sign in to continue ordering delicious food</p>
+            <p className="text-zinc-500 text-sm mt-1">
+              Sign in to continue ordering delicious food
+            </p>
           </div>
 
           {/* Demo Credentials */}
           <div className="mb-6">
-            <p className="text-zinc-400 text-sm font-medium mb-2.5">Try a demo account</p>
+            <p className="text-zinc-400 text-sm font-medium mb-2.5">
+              Try a demo account
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {demoCredentials.map((cred) => (
                 <button
@@ -146,17 +166,25 @@ export default function LoginPage() {
                     "flex flex-col items-center gap-1.5 py-3 px-3 rounded-xl border text-xs font-semibold transition-all duration-200 cursor-pointer",
                     activeDemo === cred.role
                       ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
-                      : "border-zinc-800 bg-zinc-900 hover:border-zinc-700 text-zinc-400"
+                      : "border-zinc-800 bg-zinc-900 hover:border-zinc-700 text-zinc-400",
                   )}
                 >
-                  <div className={cn(
-                    "h-8 w-8 rounded-lg flex items-center justify-center transition-colors",
-                    activeDemo === cred.role ? "bg-orange-500/20" : "bg-zinc-800"
-                  )}>
-                    <cred.icon className={cn(
-                      "h-4 w-4",
-                      activeDemo === cred.role ? "text-orange-400" : "text-zinc-500"
-                    )} />
+                  <div
+                    className={cn(
+                      "h-8 w-8 rounded-lg flex items-center justify-center transition-colors",
+                      activeDemo === cred.role
+                        ? "bg-orange-500/20"
+                        : "bg-zinc-800",
+                    )}
+                  >
+                    <cred.icon
+                      className={cn(
+                        "h-4 w-4",
+                        activeDemo === cred.role
+                          ? "text-orange-400"
+                          : "text-zinc-500",
+                      )}
+                    />
                   </div>
                   {cred.role}
                 </button>
@@ -165,11 +193,16 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
-
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-3.5"
+          >
             {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              <Label
+                htmlFor="email"
+                className="text-xs font-semibold text-zinc-400 uppercase tracking-wider"
+              >
                 Email
               </Label>
               <Input
@@ -179,15 +212,20 @@ export default function LoginPage() {
                 {...register("email")}
                 className={cn(
                   "h-11 rounded-xl bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50 transition-colors",
-                  errors.email && "border-red-500/50"
+                  errors.email && "border-red-500/50",
                 )}
               />
-              {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
+              {errors.email && (
+                <p className="text-xs text-red-400">{errors.email.message}</p>
+              )}
             </div>
 
             {/* Password */}
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              <Label
+                htmlFor="password"
+                className="text-xs font-semibold text-zinc-400 uppercase tracking-wider"
+              >
                 Password
               </Label>
               <div className="relative">
@@ -198,7 +236,7 @@ export default function LoginPage() {
                   {...register("password")}
                   className={cn(
                     "h-11 rounded-xl bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-orange-500/30 focus-visible:border-orange-500/50 pr-9 transition-colors",
-                    errors.password && "border-red-500/50"
+                    errors.password && "border-red-500/50",
                   )}
                 />
                 <button
@@ -206,10 +244,18 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-300 transition-colors cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-xs text-red-400">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Submit */}
@@ -221,7 +267,7 @@ export default function LoginPage() {
                 "bg-orange-500 hover:bg-orange-400 active:scale-[0.98]",
                 "flex items-center justify-center gap-2",
                 "shadow-lg shadow-orange-500/20",
-                loading && "opacity-70 cursor-not-allowed"
+                loading && "opacity-70 cursor-not-allowed",
               )}
             >
               {loading ? (
@@ -261,7 +307,10 @@ export default function LoginPage() {
           {/* Footer */}
           <p className="text-sm text-center text-zinc-600 mt-5">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-orange-400 hover:text-orange-300 font-semibold transition-colors">
+            <Link
+              href="/register"
+              className="text-orange-400 hover:text-orange-300 font-semibold transition-colors"
+            >
               Sign up
             </Link>
           </p>
