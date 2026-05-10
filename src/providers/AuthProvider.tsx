@@ -30,38 +30,57 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
   const [fallbackUser, setFallbackUser] = useState<SessionUser | null>(null);
-  const [fallbackLoading, setFallbackLoading] = useState(false);
+  
+  // Token থাকলে initially true রাখো
+  const [fallbackLoading, setFallbackLoading] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !!localStorage.getItem("meowmeal_token");
+    }
+    return false;
+  });
 
   useEffect(() => {
-    // Session না থাকলে token দিয়ে user fetch করো
-    if (!isPending && !session?.user) {
-      const token = localStorage.getItem("meowmeal_token");
-      if (token) {
-        const controller = new AbortController();
+    let isMounted = true;
 
-        (async () => {
-          setFallbackLoading(true);
+    const fetchUser = async () => {
+      if (!isPending && !session?.user) {
+        const token = localStorage.getItem("meowmeal_token");
+        if (token) {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
-              headers: { Authorization: `Bearer ${token}` },
-              signal: controller.signal,
-            });
-            const data = await res.json();
-            if (data?.data?.id) {
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/users/me`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            const data = await response.json();
+            if (isMounted && data?.data?.id) {
               setFallbackUser(data.data);
             }
           } catch (error) {
-            if (error instanceof Error && error.name !== 'AbortError') {
-              console.error('Failed to fetch user:', error);
-            }
+            // Handle error silently
           } finally {
+            if (isMounted) {
+              setFallbackLoading(false);
+            }
+          }
+        } else {
+          if (isMounted) {
             setFallbackLoading(false);
           }
-        })();
-
-        return () => controller.abort();
+        }
+      } else {
+        if (isMounted) {
+          setFallbackLoading(false);
+        }
       }
-    }
+    };
+
+    fetchUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isPending, session]);
 
   const user = (session?.user as SessionUser) || fallbackUser;
