@@ -64,8 +64,25 @@ export default function LoginPage() {
       }
 
       toast.success("Welcome back!");
-      router.push("/dashboard/customer");
+
+      // API থেকে role নাও
+      const meRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+        headers: {
+          Authorization: `Bearer ${res.data?.token || localStorage.getItem("meowmeal_token")}`,
+        },
+      });
+      const meData = await meRes.json();
+      const role = meData?.data?.role;
+
+      if (role === "ADMIN") {
+        router.push("/dashboard/admin");
+      } else if (role === "PROVIDER") {
+        router.push("/dashboard/provider");
+      } else {
+        router.push("/dashboard/customer");
+      }
       router.refresh();
+
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
