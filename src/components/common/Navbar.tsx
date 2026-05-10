@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   ShoppingCart,
   User,
@@ -31,6 +31,7 @@ import { signOut } from "@/lib/auth-client";
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -279,19 +280,21 @@ export function Navbar() {
               </SheetTrigger>
 
               <SheetContent side="right" className="w-72 p-0 [&>button]:hidden">
+                <VisuallyHidden>
+                  <SheetTitle>Navigation Menu</SheetTitle>
+                </VisuallyHidden>
                 <div className="flex flex-col h-full">
                   {/* Mobile Header */}
                   <div className="border-b border-border/50 px-5 py-6 flex items-center gap-3">
                     <Image
                       src="/logo.png"
                       alt="MeowMeal"
-                      width={36}
-                      height={36}
-                      className="rounded-xl"
+                      width={100}
+                      height={100}
                     />
                     <div>
                       <p className="font-black text-base text-primary tracking-tight">
-                        meowmeal
+                        MeowMeal
                       </p>
                       <p className="text-[11px] text-muted-foreground">
                         Delicious food, fast delivery
