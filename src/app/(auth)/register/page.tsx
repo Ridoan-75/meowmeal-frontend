@@ -136,7 +136,7 @@ function RegisterForm() {
   const handleGoogleLogin = async () => {
     await signIn.social({
       provider: "google",
-      callbackURL: "/auth/callback",
+      callbackURL: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     });
   };
 
