@@ -296,7 +296,7 @@ export function Navbar() {
       <div
         onClick={() => setMobileOpen(false)}
         className={cn(
-          "fixed inset-0 z-40 bg-black/40 backdrop-blur-sm transition-all duration-300 lg:hidden",
+          "fixed top-0 left-0 right-0 bottom-0 z-40 bg-black/40 backdrop-blur-sm transition-all duration-300 lg:hidden",
           mobileOpen
             ? "opacity-100 pointer-events-auto"
             : "opacity-0 pointer-events-none",
@@ -306,10 +306,10 @@ export function Navbar() {
       {/* Drawer — bigger, centered */}
       <div
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[380px] lg:hidden transition-all duration-300 ease-in-out",
+          "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[380px] lg:hidden transition-all duration-300 ease-in-out",
           mobileOpen
-            ? "opacity-100 scale-100 translate-y-[-50%]"
-            : "opacity-0 scale-90 translate-y-[-40%] pointer-events-none",
+            ? "opacity-100 scale-100 -translate-x-1/2 -translate-y-1/2"
+            : "opacity-0 scale-90 -translate-x-1/2 -translate-y-[40%] pointer-events-none",
         )}
       >
         <div className="bg-card border border-border rounded-3xl shadow-2xl shadow-black/10 overflow-hidden flex flex-col">
