@@ -7,7 +7,6 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { AIChatbot } from "@/components/common/AIChatbot";
 import { Toaster } from "@/components/ui/sonner";
 import { LenisProvider } from "@/providers/LenisProvider";
-import { PageLoader } from "@/components/common/PageLoader";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -33,7 +32,6 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <LenisProvider>
-          <PageLoader />
           <ThemeProvider>
             <QueryProvider>
               <AuthProvider>

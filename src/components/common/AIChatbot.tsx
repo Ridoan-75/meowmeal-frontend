@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Send, User, Sparkles } from "lucide-react";
+import { X, Send, User, Sparkles, Bot } from "lucide-react";
 import Image from "next/image";
 import api from "@/lib/axios";
 import { usePathname } from "next/navigation";
@@ -31,18 +31,13 @@ export function AIChatbot() {
   }, [messages, loading]);
 
   useEffect(() => {
-    if (!loading && open) {
-      inputRef.current?.focus();
-    }
+    if (!loading && open) inputRef.current?.focus();
   }, [loading, open]);
 
   useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    }
+    if (open) setTimeout(() => inputRef.current?.focus(), 100);
   }, [open]);
 
-  // hooks এর পরে early return
   if (pathname === "/login" || pathname === "/register") return null;
 
   const sendMessage = async () => {
@@ -73,18 +68,25 @@ export function AIChatbot() {
 
   return (
     <>
+      {/* ── Chat Window ── */}
       {open && (
-        <div className="fixed bottom-28 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[60vh]">
+        <div className="fixed bottom-32 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 bg-card border border-border rounded-3xl shadow-2xl shadow-primary/10 flex flex-col overflow-hidden max-h-[60vh]">
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
-                <Image src="/chatbot.png" alt="MeowMeal AI" width={32} height={32} className="rounded-full object-cover" />
+            <div className="flex items-center gap-3">
+              <div className="relative h-9 w-9 rounded-full overflow-hidden border-2 border-white/30">
+                <Image src="/chatbot.png" alt="MeowMeal AI" fill className="object-cover" />
               </div>
               <div>
-                <p className="text-black font-bold text-sm">MeowMeal AI</p>
-                <p className="text-secondary text-xs">Always here to help</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-white font-bold text-sm">MeowMeal AI</p>
+                  <Sparkles className="h-3 w-3 text-white/80" />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                  <p className="text-white/70 text-[10px]">Always here to help</p>
+                </div>
               </div>
             </div>
             <button
@@ -155,21 +157,43 @@ export function AIChatbot() {
         </div>
       )}
 
-      {/* Toggle Button */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-8 right-4 sm:right-6 z-50 h-20 w-20 rounded-full flex items-center justify-center transition-all hover:scale-110 overflow-visible"
-      >
-        <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-        <span className="absolute inset-1 rounded-full bg-primary/10 animate-pulse" />
-        <Image
-          src="/chatbot.png"
-          alt="MeowMeal AI"
-          width={80}
-          height={80}
-          className="relative rounded-full object-cover shadow-2xl shadow-primary/30 z-10"
-        />
-      </button>
+      {/* ── Toggle Button ── */}
+      <div className="fixed bottom-6 right-4 sm:right-6 z-50 flex flex-col items-end gap-2">
+        {/* Button */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="relative h-16 w-16 rounded-2xl flex items-center justify-center transition-all hover:scale-110 overflow-visible"
+        >
+          {/* Ping rings */}
+          {!open && (
+            <>
+              <span className="absolute inset-0 rounded-2xl bg-primary/25 animate-ping" />
+              <span className="absolute inset-1 rounded-2xl bg-primary/15 animate-pulse" />
+            </>
+          )}
+
+          {/* Main button */}
+          <div className={`relative z-10 h-16 w-16 rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 transition-all duration-300 overflow-hidden ${open ? "bg-primary" : "bg-primary"}`}>
+            {open ? (
+              <X className="h-6 w-6 text-white" />
+            ) : (
+              <Image
+                src="/chatbot.png"
+                alt="MeowMeal AI"
+                fill
+                className="object-cover"
+              />
+            )}
+          </div>
+
+          {/* AI badge */}
+          {!open && (
+            <div className="absolute -top-2 -right-2 z-20 bg-accent text-accent-foreground text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-md">
+              AI
+            </div>
+          )}
+        </button>
+      </div>
     </>
   );
 }

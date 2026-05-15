@@ -9,6 +9,7 @@ import { NewsletterSection } from "@/components/sections/NewsletterSection";
 import { CTASection } from "@/components/sections/CTASection";
 import { Navbar } from "@/components/common/Navbar";
 import { Footer } from "@/components/common/Footer";
+import { ChefSection } from "@/components/sections/ChefSection";
 
 export default function HomePage() {
   return (
@@ -19,11 +20,12 @@ export default function HomePage() {
         <CategorySection />
         <FeaturedMeals />
         <HowItWorks />
+        <ChefSection />
         <TopProviders />
         <Testimonials />
         <FAQSection />
-        <NewsletterSection />
         <CTASection />
+        <NewsletterSection />
       </main>
       <Footer />
     </>

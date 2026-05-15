@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star, Clock, ShoppingCart, Heart, ArrowRight } from "lucide-react";
+import { Star, Clock, ShoppingCart, Heart, ArrowRight, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Meal } from "@/types";
 import { cn } from "@/lib/utils";
@@ -29,10 +29,7 @@ export function MealCard({ meal }: MealCardProps) {
 
   const addToCartMutation = useMutation({
     mutationFn: async () => {
-      const res = await api.post("/cart", {
-        mealId: meal.id,
-        quantity: 1,
-      });
+      const res = await api.post("/cart", { mealId: meal.id, quantity: 1 });
       return res.data;
     },
     onSuccess: async () => {
@@ -52,7 +49,6 @@ export function MealCard({ meal }: MealCardProps) {
       return res.data.data;
     },
     onError: () => {
-      // Revert optimistic update on error
       toggleId(meal.id);
       toast.error("Failed to update wishlist");
     },
@@ -82,34 +78,30 @@ export function MealCard({ meal }: MealCardProps) {
       });
       return;
     }
-
-    // Optimistic update — immediately toggle UI
     const willBeWishlisted = !isWishlisted;
     toggleId(meal.id);
-    toast.success(willBeWishlisted ? "Added to wishlist!" : "Removed from wishlist"), {duration: 2000};
-
-    // Then sync with backend silently
+    toast.success(willBeWishlisted ? "Added to wishlist!" : "Removed from wishlist", { duration: 2000 });
     wishlistMutation.mutate();
   };
 
+  const isTopRated = meal.avgRating && meal.avgRating >= 4.5;
+
   return (
-    <div className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/30 hover:-translate-y-2 transition-all duration-300 flex flex-col h-full">
-      {/* Image */}
-      <div className="relative h-52 w-full overflow-hidden bg-secondary">
+    <div className="group relative bg-card border border-border rounded-3xl overflow-hidden hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-2 transition-all duration-300 flex flex-col h-full">
+
+      {/* ── Image ── */}
+      <div className="relative h-52 w-full overflow-hidden bg-secondary shrink-0">
         <Image
-          src={
-            meal.images?.[0] ||
-            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400"
-          }
+          src={meal.images?.[0] || "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400"}
           alt={meal.title}
           fill
           className="object-cover group-hover:scale-110 transition-transform duration-700"
         />
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
 
-        {/* Unavailable */}
+        {/* Unavailable overlay */}
         {!meal.isAvailable && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[2px]">
             <Badge variant="destructive" className="font-bold px-4 py-1 text-sm">
@@ -118,20 +110,21 @@ export function MealCard({ meal }: MealCardProps) {
           </div>
         )}
 
-        {/* Top badges row */}
+        {/* Top badges */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
-          {meal.avgRating && meal.avgRating >= 4.5 ? (
-            <Badge className="bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 shadow-md">
+          {isTopRated ? (
+            <div className="flex items-center gap-1 bg-accent text-accent-foreground text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">
+              <Flame className="h-3 w-3" />
               Top Rated
-            </Badge>
+            </div>
           ) : (
             <div />
           )}
 
-          {/* Like button — Optimistic */}
+          {/* Wishlist */}
           <button
             onClick={handleWishlist}
-            className="h-8 w-8 rounded-full bg-background/85 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer"
+            className="h-8 w-8 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-all cursor-pointer"
           >
             <Heart
               className={cn(
@@ -144,30 +137,27 @@ export function MealCard({ meal }: MealCardProps) {
           </button>
         </div>
 
-        {/* Bottom info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
+        {/* Bottom info — rating + time */}
+        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
           {meal.avgRating !== undefined && meal.avgRating > 0 && (
-            <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
+            <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full">
               <Star className="h-3 w-3 fill-accent text-accent" />
-              <span className="text-white text-xs font-bold">
-                {meal.avgRating.toFixed(1)}
-              </span>
+              <span className="text-white text-xs font-bold">{meal.avgRating.toFixed(1)}</span>
             </div>
           )}
-          <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full">
+          <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm px-2.5 py-1 rounded-full ml-auto">
             <Clock className="h-3 w-3 text-white/80" />
-            <span className="text-white text-xs font-medium">
-              {meal.prepTime} min
-            </span>
+            <span className="text-white text-xs font-medium">{meal.prepTime} min</span>
           </div>
         </div>
       </div>
 
-      {/* Content */}
+      {/* ── Content ── */}
       <div className="p-4 flex flex-col flex-1 gap-3">
-        {/* Provider + Category */}
+
+        {/* Category + Provider */}
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+          <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full border border-primary/15">
             {meal.category?.name}
           </span>
           <span className="text-[11px] text-muted-foreground truncate max-w-[110px] font-medium">
@@ -194,27 +184,27 @@ export function MealCard({ meal }: MealCardProps) {
           </div>
         )}
 
-        {/* Price + Buttons */}
+        {/* Price + Actions */}
         <div className="mt-auto pt-3 border-t border-border flex flex-col gap-2.5">
+
+          {/* Price row */}
           <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xl font-black text-primary">
-                ৳{meal.price}
-              </span>
-              <span className="text-[10px] text-muted-foreground ml-1">
-                / serving
-              </span>
+            <div className="flex items-end gap-1">
+              <span className="text-2xl font-black text-primary leading-none">৳{meal.price}</span>
+              <span className="text-[10px] text-muted-foreground mb-0.5">/ serving</span>
             </div>
             {meal.totalReviews !== undefined && meal.totalReviews > 0 && (
-              <span className="text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <Star className="h-3 w-3 fill-accent text-accent" />
                 {meal.totalReviews} reviews
-              </span>
+              </div>
             )}
           </div>
 
+          {/* Buttons */}
           <div className="flex items-center gap-2">
             <Link href={`/meals/${meal.id}`} className="flex-1">
-              <button className="w-full h-9 rounded-xl border border-border hover:border-primary hover:text-primary text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 group/btn">
+              <button className="w-full h-10 rounded-2xl border border-border hover:border-primary hover:text-primary hover:bg-primary/5 text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 group/btn">
                 View Details
                 <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
               </button>
@@ -224,10 +214,10 @@ export function MealCard({ meal }: MealCardProps) {
               onClick={handleAddToCart}
               disabled={addToCartMutation.isPending || !meal.isAvailable}
               className={cn(
-                "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-sm",
+                "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-md",
                 addToCartMutation.isPending
                   ? "bg-primary/50 text-white"
-                  : "bg-primary hover:bg-primary-hover text-white hover:scale-110 hover:shadow-md hover:shadow-primary/30"
+                  : "bg-primary hover:bg-primary/90 text-white hover:scale-110 hover:shadow-lg hover:shadow-primary/30"
               )}
             >
               {addToCartMutation.isPending ? (
@@ -239,6 +229,9 @@ export function MealCard({ meal }: MealCardProps) {
           </div>
         </div>
       </div>
+
+      {/* Bottom orange accent line */}
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </div>
   );
 }
